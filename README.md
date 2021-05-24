@@ -41,3 +41,7 @@ Run the server with the following command:
 ```
 
 **[IMPORTANT]** Remember to use the same `fps` paramater in both server and client.
+
+## Client
+
+Under development...
