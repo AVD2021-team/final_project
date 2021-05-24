@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
+import sys
+import os
 import numpy as np
 import copy
+from math import sin, cos, pi
+
+sys.path.append(os.path.realpath(os.path.dirname(__file__)))
 import path_optimizer
 import collision_checker
 import velocity_planner
-from math import sin, cos, pi, sqrt
+
 
 class LocalPlanner:
     def __init__(self, num_paths, path_offset, circle_offsets, circle_radii, 
@@ -18,7 +23,7 @@ class LocalPlanner:
                                                circle_radii,
                                                path_select_weight)
         self._velocity_planner = \
-            velocity_planner.VelocityPlanner(time_gap, a_max, slow_speed, 
+            velocity_planner.VelocityPlanner(time_gap, a_max, slow_speed,
                                              stop_line_buffer)
         self._prev_best_path = None
 

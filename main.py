@@ -10,27 +10,18 @@ import logging
 import time
 import math
 import numpy as np
-import csv
-import matplotlib.pyplot as plt
-from numpy.core.defchararray import index
-import controller2d
+from controller import controller2d
 import configparser
-import local_planner
-import behavioural_planner
-import cv2
-import json
-from math import sin, cos, pi, tan, sqrt
+from local_planner import local_planner
+from behavioural_planner import behavioural_planner
+from math import sin, cos, pi, sqrt
 
 # Script level imports
 sys.path.append(os.path.abspath(sys.path[0] + '/..'))
 import live_plotter as lv  # Custom live plotting library
-from carla import sensor
 from carla.client import make_carla_client, VehicleControl
 from carla.settings import CarlaSettings
 from carla.tcp import TCPConnectionError
-from carla.controller import utils
-from carla.sensor import Camera
-from carla.image_converter import labels_to_array, depth_to_array, to_bgra_array
 from carla.planner.city_track import CityTrack
 
 ###############################################################################
