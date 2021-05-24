@@ -1,0 +1,9 @@
+Pillow==4
+numpy==1.14.5
+protobuf==3.6.0
+pygame==1.9.4
+matplotlib==2.2.2
+future==0.16.0
+scipy==1
+tensorflow==1.14.0
+keras==2.2.2
