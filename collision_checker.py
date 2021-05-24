@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 import numpy as np
 import scipy.spatial
-from math import sin, cos
-
+from math import sin, cos, pi, sqrt
 
 class CollisionChecker:
     def __init__(self, circle_offsets, circle_radii, weight):
         self._circle_offsets = circle_offsets
-        self._circle_radii = circle_radii
-        self._weight = weight
+        self._circle_radii   = circle_radii
+        self._weight         = weight
 
     # Takes in a set of paths and obstacles, and returns an array
     # of bools that says whether or not each path is collision free.
@@ -41,7 +40,7 @@ class CollisionChecker:
         collision_check_array = np.zeros(len(paths), dtype=bool)
         for i in range(len(paths)):
             collision_free = True
-            path = paths[i]
+            path           = paths[i]
 
             # Iterate over the points in the path.
             for j in range(len(path[0])):
@@ -76,10 +75,13 @@ class CollisionChecker:
                 # If so, then the path will collide with an obstacle and
                 # the collision_free flag should be set to false for this flag
                 for k in range(len(obstacles)):
-                    collision_dists = scipy.spatial.distance.cdist(obstacles[k], circle_locations)
-                    collision_dists = np.subtract(collision_dists,
+                    collision_dists = \
+                        scipy.spatial.distance.cdist(obstacles[k], 
+                                                     circle_locations)
+                    collision_dists = np.subtract(collision_dists, 
                                                   self._circle_radii)
-                    collision_free = collision_free and not np.any(collision_dists < 0)
+                    collision_free = collision_free and \
+                                     not np.any(collision_dists < 0)
 
                     if not collision_free:
                         break
@@ -134,7 +136,7 @@ class CollisionChecker:
                 # The centerline goal is given by goal_state.
                 # The exact choice of objective function is up to you.
                 # A lower score implies a more suitable path.
-                score = np.sqrt((paths[i][0][-1] - goal_state[0]) ** 2 + (paths[i][1][-1] - goal_state[1]) ** 2)
+                score = np.sqrt((paths[i][0][-1]-goal_state[0])**2+(paths[i][1][-1]-goal_state[1])**2)
 
                 # Compute the "proximity to other colliding paths" score and
                 # add it to the "distance from centerline" score.
@@ -149,7 +151,7 @@ class CollisionChecker:
             # Handle the case of colliding paths.
             else:
                 score = float('Inf')
-
+                
             # Set the best index to be the path index with the lowest score
             if score < best_score:
                 best_score = score
