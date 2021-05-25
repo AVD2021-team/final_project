@@ -74,7 +74,7 @@ def grab_and_broadcast_screen(config):
             screen = screen / 255.
             screen = np.expand_dims(screen, 0)
 
-            netout = model.predict([screen, dummy_array])[0]
+            netout = model.predict_path([screen, dummy_array])[0]
 
             boxes = decode_netout(netout,
                                   obj_threshold=config['model']['obj_thresh'],

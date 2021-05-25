@@ -220,3 +220,6 @@ class BoundBox:
             self.score = self.classes[self.get_label()]
 
         return self.score
+
+    def get_area(self):
+        return (self.xmax - self.xmin) * (self.ymax - self.ymin)

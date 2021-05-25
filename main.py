@@ -13,9 +13,10 @@ from math import sin, cos, pi, sqrt
 import numpy as np
 from controller import controller2d
 import configparser
+import cv2
 from local_planner import local_planner
 from behavioural_planner import behavioural_planner
-from traffic_light_detector import TrafficLightDetector
+from traffic_light_detector import TrafficLightDetector, TrafficLightState
 
 # Script level imports
 sys.path.append(os.path.abspath(sys.path[0] + '/..'))
@@ -798,7 +799,7 @@ def exec_waypoint_nav_demo(args):
             time_history.append(current_timestamp)
 
             # Store collision history
-            collided_flag, prev_collision_vehicles, prev_collision_pedestrians, prev_collision_other =\
+            collided_flag, prev_collision_vehicles, prev_collision_pedestrians, prev_collision_other = \
                 get_player_collided_flag(
                     measurement_data, prev_collision_vehicles, prev_collision_pedestrians, prev_collision_other)
             collided_flag_history.append(collided_flag)
@@ -1065,6 +1066,17 @@ def main():
     args.out_filename_format = '_out/episode_{:0>4d}/{:s}/{:0>6d}'
 
     tld = TrafficLightDetector()
+    image = cv2.imread(os.path.join(os.path.realpath(os.path.dirname(__file__)),
+                                    'traffic_light_detection_module', 'test_images', 'test (1).png'))
+    cv2.imshow(f"Image Traffic Light", image)
+    cv2.waitKey()
+    boxes = tld.predict_image(image)
+    image = tld.draw_boxes(image, boxes)
+    image = cv2.resize(image, (camera_parameters['width'], camera_parameters['height']))
+    cv2.imshow(f"Image Traffic Light", image)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+    state = tld.light_state(boxes)
 
     # Execute when server connection is established
     while True:

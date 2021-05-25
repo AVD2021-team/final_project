@@ -128,9 +128,11 @@ class YOLO(object):
             layer.set_weights(model.get_layer(index=idx).get_weights())
             idx += 1
 
-    def predict(self, image_path):
+    def predict_path(self, image_path):
         image = load_image_predict(image_path, self.image_h, self.image_w)
+        return self.predict_image(image)
 
+    def predict_image(self, image):
         dummy_array = np.zeros((1, 1, 1, 1, self.max_box_per_image, 4))
         netout = self.model.predict([image, dummy_array])[0]
 
@@ -487,7 +489,7 @@ class YOLO(object):
                 raw_image = self.generator.load_image(self.generator.dataset[i]['image_path'])
                 raw_height, raw_width, _ = raw_image.shape
                 # make the boxes and the labels
-                pred_boxes = self.yolo.predict(
+                pred_boxes = self.yolo.predict_path(
                     os.path.join(ANNOT_DIR, 'images', self.generator.dataset[i]['image_path']))
 
                 score = np.array([box.score for box in pred_boxes])
