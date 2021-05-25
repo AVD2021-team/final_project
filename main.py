@@ -9,12 +9,13 @@ import argparse
 import logging
 import time
 import math
+from math import sin, cos, pi, sqrt
 import numpy as np
 from controller import controller2d
 import configparser
 from local_planner import local_planner
 from behavioural_planner import behavioural_planner
-from math import sin, cos, pi, sqrt
+from traffic_light_detector import TrafficLightDetector
 
 # Script level imports
 sys.path.append(os.path.abspath(sys.path[0] + '/..'))
@@ -25,7 +26,7 @@ from carla.tcp import TCPConnectionError
 from carla.planner.city_track import CityTrack
 
 ###############################################################################
-# CONFIGURABLE PARAMENTERS DURING EXAM
+# CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
 PLAYER_START_INDEX = 7  # spawn index for player
 DESTINATION_INDEX = 15  # Setting a Destination HERE
@@ -33,7 +34,8 @@ NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
 SEED_VEHICLES = 0  # seed for vehicle spawn randomizer
-###############################################################################àà
+
+###############################################################################
 
 ITER_FOR_SIM_TIMESTEP = 10  # no. iterations to compute approx sim timestep
 WAIT_TIME_BEFORE_START = 1.00  # game seconds (time before controller start)
@@ -100,17 +102,17 @@ INTERP_MAX_POINTS_PLOT = 10  # number of points used for displaying
 INTERP_DISTANCE_RES = 0.01  # distance between interpolated points
 
 # controller output directory
-CONTROLLER_OUTPUT_FOLDER = os.path.dirname(os.path.realpath(__file__)) + \
-                           '/controller_output/'
+CONTROLLER_OUTPUT_FOLDER = os.path.dirname(os.path.realpath(__file__)) + '/controller_output/'
 
 # Camera parameters
-camera_parameters = {}
-camera_parameters['x'] = 1.8
-camera_parameters['y'] = 0
-camera_parameters['z'] = 1.3
-camera_parameters['width'] = 200
-camera_parameters['height'] = 200
-camera_parameters['fov'] = 90
+camera_parameters = {
+    'x': 1.8,
+    'y': 0,
+    'z': 1.3,
+    'width': 200,
+    'height': 200,
+    'fov': 90,
+}
 
 
 def rotate_x(angle):
@@ -149,19 +151,16 @@ def obstacle_to_world(location, dimensions, orientation):
     zrad = dimensions.z
 
     # Border points in the obstacle frame
-    cpos = np.array([
-        [-xrad, -xrad, -xrad, 0, xrad, xrad, xrad, 0],
-        [-yrad, 0, yrad, yrad, yrad, 0, -yrad, -yrad]])
+    cpos = np.array([[-xrad, -xrad, -xrad, 0, xrad, xrad, xrad, 0],
+                     [-yrad, 0, yrad, yrad, yrad, 0, -yrad, -yrad]])
 
     # Rotation of the obstacle
-    rotyaw = np.array([
-        [np.cos(yaw), np.sin(yaw)],
-        [-np.sin(yaw), np.cos(yaw)]])
+    rotyaw = np.array([[np.cos(yaw), np.sin(yaw)],
+                       [-np.sin(yaw), np.cos(yaw)]])
 
     # Location of the obstacle in the world frame
-    cpos_shift = np.array([
-        [x, x, x, x, x, x, x, x],
-        [y, y, y, y, y, y, y, y]])
+    cpos_shift = np.array([[x, x, x, x, x, x, x, x],
+                           [y, y, y, y, y, y, y, y]])
 
     cpos = np.add(np.matmul(rotyaw, cpos), cpos_shift)
 
@@ -191,7 +190,8 @@ def make_carla_settings(args):
         SeedVehicles=SEED_VEHICLES,
         SeedPedestrians=SEED_PEDESTRIANS,
         WeatherId=SIMWEATHER,
-        QualityLevel=args.quality_level)
+        QualityLevel=args.quality_level
+    )
 
     # Common cameras settings
     cam_height = camera_parameters['z']
@@ -261,7 +261,7 @@ def get_current_pose(measurement):
     roll = math.radians(measurement.player_measurements.transform.rotation.roll)
     yaw = math.radians(measurement.player_measurements.transform.rotation.yaw)
 
-    return (x, y, z, pitch, roll, yaw)
+    return x, y, z, pitch, roll, yaw
 
 
 def get_start_pos(scene):
@@ -281,7 +281,7 @@ def get_start_pos(scene):
     y = scene.player_start_spots[0].location.y
     yaw = math.radians(scene.player_start_spots[0].rotation.yaw)
 
-    return (x, y, yaw)
+    return x, y, yaw
 
 
 def get_player_collided_flag(measurement,
@@ -304,8 +304,7 @@ def get_player_collided_flag(measurement,
     current_collision_other = player_meas.collision_other
 
     collided_vehicles = current_collision_vehicles > prev_collision_vehicles
-    collided_pedestrians = current_collision_pedestrians > \
-                           prev_collision_pedestrians
+    collided_pedestrians = current_collision_pedestrians > prev_collision_pedestrians
     collided_other = current_collision_other > prev_collision_other
 
     return (collided_vehicles or collided_pedestrians or collided_other,
@@ -362,9 +361,8 @@ def write_trajectory_file(x_list, y_list, v_list, t_list, collided_list):
 
     with open(file_name, 'w') as trajectory_file:
         for i in range(len(x_list)):
-            trajectory_file.write('%3.3f, %3.3f, %2.3f, %6.3f %r\n' % \
-                                  (x_list[i], y_list[i], v_list[i], t_list[i],
-                                   collided_list[i]))
+            trajectory_file.write(
+                '%3.3f, %3.3f, %2.3f, %6.3f %r\n' % (x_list[i], y_list[i], v_list[i], t_list[i], collided_list[i]))
 
 
 def write_collisioncount_file(collided_list):
@@ -442,7 +440,7 @@ def exec_waypoint_nav_demo(args):
         # Get options
         enable_live_plot = demo_opt.get('live_plotting', 'true').capitalize()
         enable_live_plot = enable_live_plot == 'True'
-        live_plot_period = float(demo_opt.get('live_plotting_period', 0))
+        live_plot_period = float(demo_opt.get('live_plotting_period', '0'))
 
         # Set options
         live_plot_timer = Timer(live_plot_period)
@@ -455,7 +453,7 @@ def exec_waypoint_nav_demo(args):
         #############################################
         # Ensure at least one frame is used to compute average timestep
         num_iterations = ITER_FOR_SIM_TIMESTEP
-        if (ITER_FOR_SIM_TIMESTEP < 1):
+        if ITER_FOR_SIM_TIMESTEP < 1:
             num_iterations = 1
 
         # Gather current data from the CARLA server. This is used to get the
@@ -541,7 +539,7 @@ def exec_waypoint_nav_demo(args):
             dy = current_waypoint[1] - previuos_waypoint[1]
 
             is_turn = ((prev_x and abs(dy) > 0.1) or (prev_y and abs(dx) > 0.1)) and not (
-                        abs(dx) > 0.1 and abs(dy) > 0.1)
+                    abs(dx) > 0.1 and abs(dy) > 0.1)
 
             prev_x = abs(dx) > 0.1
             prev_y = abs(dy) > 0.1
@@ -800,13 +798,9 @@ def exec_waypoint_nav_demo(args):
             time_history.append(current_timestamp)
 
             # Store collision history
-            collided_flag, \
-            prev_collision_vehicles, \
-            prev_collision_pedestrians, \
-            prev_collision_other = get_player_collided_flag(measurement_data,
-                                                            prev_collision_vehicles,
-                                                            prev_collision_pedestrians,
-                                                            prev_collision_other)
+            collided_flag, prev_collision_vehicles, prev_collision_pedestrians, prev_collision_other =\
+                get_player_collided_flag(
+                    measurement_data, prev_collision_vehicles, prev_collision_pedestrians, prev_collision_other)
             collided_flag_history.append(collided_flag)
 
             # Execute the behaviour and local planning in the current instance
@@ -846,7 +840,7 @@ def exec_waypoint_nav_demo(args):
                 # Compute the best local path.
                 best_index = lp._collision_checker.select_best_path_index(paths, collision_check_array, bp._goal_state)
                 # If no path was feasible, continue to follow the previous best path.
-                if best_index == None:
+                if best_index is None:
                     best_path = lp._prev_best_path
                 else:
                     best_path = paths[best_index]
@@ -860,7 +854,7 @@ def exec_waypoint_nav_demo(args):
                                                                                     current_speed, decelerate_to_stop,
                                                                                     None, bp._follow_lead_vehicle)
 
-                    if local_waypoints != None:
+                    if local_waypoints is not None:
                         # Update the controller waypoint path with the best local path.
                         # This controller is similar to that developed in Course 1 of this
                         # specialization.  Linear interpolation computation on the waypoints
@@ -886,8 +880,7 @@ def exec_waypoint_nav_demo(args):
                             # points to interpolate based on the desired resolution and
                             # incrementally add interpolated points until the next waypoint
                             # is about to be reached.
-                            num_pts_to_interp = int(np.floor(wp_distance[i] / \
-                                                             float(INTERP_DISTANCE_RES)) - 1)
+                            num_pts_to_interp = int(np.floor(wp_distance[i] / float(INTERP_DISTANCE_RES)) - 1)
                             wp_vector = local_waypoints_np[i + 1] - local_waypoints_np[i]
                             wp_uvector = wp_vector / np.linalg.norm(wp_vector[0:2])
 
@@ -903,7 +896,7 @@ def exec_waypoint_nav_demo(args):
             ###
             # Controller Update
             ###
-            if local_waypoints != None and local_waypoints != []:
+            if local_waypoints is not None and local_waypoints != []:
                 controller.update_values(current_x, current_y, current_yaw,
                                          current_speed,
                                          current_timestamp, frame)
@@ -917,7 +910,7 @@ def exec_waypoint_nav_demo(args):
             # Skip the first frame or if there exists no local paths
             if skip_first_frame and frame == 0:
                 pass
-            elif local_waypoints == None:
+            elif local_waypoints is None:
                 pass
             else:
                 # Update live plotter with new feedback
@@ -1070,6 +1063,8 @@ def main():
     logging.info('listening to server %s:%s', args.host, args.port)
 
     args.out_filename_format = '_out/episode_{:0>4d}/{:s}/{:0>6d}'
+
+    tld = TrafficLightDetector()
 
     # Execute when server connection is established
     while True:

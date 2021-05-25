@@ -5,6 +5,7 @@ import numpy as np
 import copy
 from math import sin, cos, pi
 
+# Script level imports
 sys.path.append(os.path.realpath(os.path.dirname(__file__)))
 import path_optimizer
 import collision_checker
