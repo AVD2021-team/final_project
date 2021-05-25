@@ -3,7 +3,7 @@ import os
 import json
 
 # Script level imports
-from traffic_light_detection_module.yolo import YOLO
+from traffic_light_detection.yolo import YOLO
 
 
 class TrafficLightDetector:
