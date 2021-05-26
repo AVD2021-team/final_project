@@ -16,6 +16,7 @@ import configparser
 import cv2
 from local_planner import local_planner
 from behavioural_planner import behavioural_planner
+from behavioural_planner.behavioural_planner_state import DecelerateToStopState
 from traffic_light_detector import TrafficLightDetector, TrafficLightState
 from data_visualization import visualize_sensor_data, get_sensor_output, Sensor
 import transforms3d
@@ -924,10 +925,10 @@ def exec_waypoint_nav_demo(args):
                         lead_car_state = [lead_car_pos[0], lead_car_pos[1], lead_car_speed]
                     else:
                         lead_car_state = None
-                    decelerate_to_stop = bp._state == behavioural_planner.DECELERATE_TO_STOP
-                    local_waypoints = lp._velocity_planner.compute_velocity_profile(best_path, desired_speed, ego_state,
-                                                                                    current_speed, decelerate_to_stop,
-                                                                                    lead_car_state, bp._follow_lead_vehicle)
+
+                    decelerate_to_stop = isinstance(bp._state, DecelerateToStopState)
+                    local_waypoints = lp._velocity_planner.compute_velocity_profile(best_path, desired_speed,
+                        ego_state, current_speed, decelerate_to_stop, lead_car_state, bp._follow_lead_vehicle)
 
                     if local_waypoints is not None:
                         # Update the controller waypoint path with the best local path.

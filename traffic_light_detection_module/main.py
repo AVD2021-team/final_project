@@ -12,7 +12,7 @@ def main(args):
 
     yolo = YOLO(config)
     if config['train']['enabled']:
-        #yolo.load_weights(config['model']['saved_model_name'])
+        # yolo.load_weights(config['model']['saved_model_name'])
         yolo.train()
     else:
         yolo.evaluate()
