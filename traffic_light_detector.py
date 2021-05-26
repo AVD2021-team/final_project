@@ -65,7 +65,9 @@ class TrafficLightDetector(YOLO):
         """
         new_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
         if new_state[0] == TrafficLightState.NO_TL:
-            new_state = self._light_state(boxes[Sensor.NarrowFOVCameraRGB])
+            new_state = self._light_state(boxes[Sensor.MediumFOVCameraRGB])
+            if new_state[0] == TrafficLightState.NO_TL:
+                new_state = self._light_state(boxes[Sensor.NarrowFOVCameraRGB])
 
         if self._state is None:
             self._state = new_state
