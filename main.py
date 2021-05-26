@@ -33,7 +33,7 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 2  # spawn index for player
+PLAYER_START_INDEX = 113  # spawn index for player
 DESTINATION_INDEX = 15  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
@@ -770,7 +770,7 @@ def exec_waypoint_nav_demo(args):
             SLOW_SPEED,
             STOP_LINE_BUFFER
         )
-        bp = behavioural_planner.BehaviouralPlanner(BP_LOOKAHEAD_BASE, LEAD_VEHICLE_LOOKAHEAD)
+        bp = behavioural_planner.BehaviouralPlanner(BP_LOOKAHEAD_BASE, LEAD_VEHICLE_LOOKAHEAD, A_MAX)
 
         #############################################
         # Scenario Execution Loop
@@ -895,7 +895,7 @@ def exec_waypoint_nav_demo(args):
 
                 # Check to see if we need to follow the lead vehicle.
                 if lead_car_pos is not None:
-                    bp.check_for_lead_vehicle(ego_state, lead_car_pos)
+                    bp.check_for_lead_vehicle(ego_state, lead_car_pos, lead_car_speed)
 
                 # Compute the goal state set from the behavioural planner's computed goal state.
                 goal_state_set = lp.get_goal_state_set(bp._goal_index, bp._goal_state, waypoints, ego_state)

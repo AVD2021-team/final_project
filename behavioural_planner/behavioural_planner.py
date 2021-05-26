@@ -7,6 +7,7 @@ import math
 # Script level imports
 sys.path.append(os.path.realpath(os.path.dirname(__file__)))
 from behavioural_planner_state import BehaviouralPlannerState, FollowLaneState
+from local_planner.velocity_planner import calc_distance
 
 # State machine states
 # FOLLOW_LANE = 0
@@ -15,7 +16,7 @@ from behavioural_planner_state import BehaviouralPlannerState, FollowLaneState
 
 
 class BehaviouralPlanner:
-    def __init__(self, lookahead, lead_vehicle_lookahead):
+    def __init__(self, lookahead, lead_vehicle_lookahead, a_max):
         self._lookahead = lookahead
         self._follow_lead_vehicle_lookahead = lead_vehicle_lookahead
         self._state = FollowLaneState(self)
@@ -25,6 +26,7 @@ class BehaviouralPlanner:
         self._goal_index = 0
         self._stop_count = 0
         self._lookahead_collision_index = 0
+        self._a_max = a_max
 
     def set_lookahead(self, lookahead):
         self._lookahead = lookahead
@@ -105,7 +107,7 @@ class BehaviouralPlanner:
 
     # Checks to see if we need to modify our velocity profile to accommodate the
     # lead vehicle.
-    def check_for_lead_vehicle(self, ego_state, lead_car_position):
+    def check_for_lead_vehicle(self, ego_state, lead_car_position, lead_car_speed):
         """Checks for lead vehicle within the proximity of the ego car, such
         that the ego car should begin to follow the lead vehicle.
 
@@ -130,7 +132,7 @@ class BehaviouralPlanner:
             lead_car_delta_vector = [lead_car_position[0] - ego_state[0], lead_car_position[1] - ego_state[1]]
             lead_car_distance = np.linalg.norm(lead_car_delta_vector)
             # In this case, the car is too far away.
-            if lead_car_distance > self._follow_lead_vehicle_lookahead + compute_stop_distance(ego_state[3]):
+            if lead_car_distance > self._follow_lead_vehicle_lookahead + calc_distance(ego_state[3], lead_car_speed, -self._a_max):
                 return
 
             lead_car_delta_vector = np.divide(lead_car_delta_vector,
@@ -150,7 +152,7 @@ class BehaviouralPlanner:
             lead_car_distance = np.linalg.norm(lead_car_delta_vector)
 
             # Add a 5m buffer to prevent oscillations for the distance check.
-            if lead_car_distance > 5 + self._follow_lead_vehicle_lookahead + compute_stop_distance(ego_state[3]):
+            if lead_car_distance > 10 + self._follow_lead_vehicle_lookahead + calc_distance(ego_state[3], lead_car_speed, -self._a_max):
                 self._follow_lead_vehicle = False
                 return
             # Check to see if the lead vehicle is still within the ego vehicle's
