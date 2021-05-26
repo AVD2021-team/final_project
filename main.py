@@ -18,6 +18,7 @@ from local_planner import local_planner
 from behavioural_planner import behavioural_planner
 from traffic_light_detector import TrafficLightDetector, TrafficLightState
 from data_visualization import visualize_sensor_data, get_sensor_output, Sensor
+import transforms3d
 
 # Script level imports
 sys.path.append(os.path.abspath(sys.path[0] + '/..'))
@@ -31,12 +32,13 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 91  # spawn index for player
-DESTINATION_INDEX = 64  # Setting a Destination HERE
+PLAYER_START_INDEX = 2  # spawn index for player
+DESTINATION_INDEX = 15  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
 SEED_VEHICLES = 0  # seed for vehicle spawn randomizer
+###############################################################################àà
 
 ###############################################################################
 
@@ -89,10 +91,11 @@ PATH_SELECT_WEIGHT = 10
 A_MAX = 2.5  # m/s^2
 SLOW_SPEED = 2.0  # m/s
 STOP_LINE_BUFFER = 3.5  # m
-LEAD_VEHICLE_LOOKAHEAD = 20.0  # m
+LEAD_VEHICLE_LOOKAHEAD = 10.0  # m
 LP_FREQUENCY_DIVISOR = 2  # Frequency divisor to make the
 DESIRED_SPEED = 8  # m/s
 TURN_SPEED = 3  # m/s
+LEAD_CAR_LATERAL_THRESHOLD = 2 # m, the maximum shift on the y axis, relative to ego, of the lead car
 # local planner operate at a lower
 # frequency than the controller
 # (which operates at the simulation
@@ -846,6 +849,27 @@ def exec_waypoint_nav_demo(args):
                     measurement_data, prev_collision_vehicles, prev_collision_pedestrians, prev_collision_other)
             collided_flag_history.append(collided_flag)
 
+            # Obtain Lead Vehicle information.
+            lead_car_pos    = None
+            lead_car_length = None
+            lead_car_speed  = None
+            temp = float('inf')
+
+            for agent in measurement_data.non_player_agents:
+                # save only vehicles that have the same orientation
+                if agent.HasField('vehicle'):
+                    new_car_pos = agent.vehicle.transform.location
+                    car_loc = np.array([new_car_pos.x, new_car_pos.y, new_car_pos.z]) - np.array([current_x, current_y, current_z])
+                    R = transforms3d.euler.euler2mat(current_roll, current_pitch, current_yaw).T
+                    car_loc_relative = np.dot(R, car_loc)
+                    if 0 < car_loc_relative[0] < temp and abs(car_loc_relative[1]) < LEAD_CAR_LATERAL_THRESHOLD:
+                        temp = car_loc_relative[0]
+                        lead_car_pos = [agent.vehicle.transform.location.x, agent.vehicle.transform.location.y]
+                        lead_car_length = agent.vehicle.bounding_box.extent.x
+                        lead_car_speed = agent.vehicle.forward_speed
+
+
+
             # Execute the behaviour and local planning in the current instance
             # Note that updating the local path during every controller update
             # produces issues with the tracking performance (imagine everytime
@@ -867,6 +891,10 @@ def exec_waypoint_nav_demo(args):
 
                 # Perform a state transition in the behavioural planner.
                 bp.transition_state(waypoints, ego_state, current_speed)
+
+                # Check to see if we need to follow the lead vehicle.
+                if lead_car_pos is not None:
+                    bp.check_for_lead_vehicle(ego_state, lead_car_pos)
 
                 # Compute the goal state set from the behavioural planner's computed goal state.
                 goal_state_set = lp.get_goal_state_set(bp._goal_index, bp._goal_state, waypoints, ego_state)
@@ -892,10 +920,14 @@ def exec_waypoint_nav_demo(args):
                 if best_path is not None:
                     # Compute the velocity profile for the path, and compute the waypoints.
                     desired_speed = bp._goal_state[2]
+                    if lead_car_pos is not None:
+                        lead_car_state = [lead_car_pos[0], lead_car_pos[1], lead_car_speed]
+                    else:
+                        lead_car_state = None
                     decelerate_to_stop = bp._state == behavioural_planner.DECELERATE_TO_STOP
                     local_waypoints = lp._velocity_planner.compute_velocity_profile(best_path, desired_speed, ego_state,
                                                                                     current_speed, decelerate_to_stop,
-                                                                                    None, bp._follow_lead_vehicle)
+                                                                                    lead_car_state, bp._follow_lead_vehicle)
 
                     if local_waypoints is not None:
                         # Update the controller waypoint path with the best local path.
@@ -959,7 +991,8 @@ def exec_waypoint_nav_demo(args):
                 # Update live plotter with new feedback
                 trajectory_fig.roll("trajectory", current_x, current_y)
                 trajectory_fig.roll("car", current_x, current_y)
-
+                if lead_car_pos is not None:
+                    trajectory_fig.roll("leadcar", lead_car_pos[0], lead_car_pos[1])
                 # Load parked car points
                 if len(obstacles) > 0:
                     x = obstacles[:, :, 0]

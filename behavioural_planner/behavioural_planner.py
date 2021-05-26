@@ -220,8 +220,8 @@ class BehaviouralPlanner:
             lead_car_delta_vector = [lead_car_position[0] - ego_state[0], 
                                      lead_car_position[1] - ego_state[1]]
             lead_car_distance = np.linalg.norm(lead_car_delta_vector)
-            # In this case, the car is too far away.   
-            if lead_car_distance > self._follow_lead_vehicle_lookahead:
+            # In this case, the car is too far away.
+            if lead_car_distance > self._follow_lead_vehicle_lookahead + compute_stop_distance(ego_state[3]):
                 return
 
             lead_car_delta_vector = np.divide(lead_car_delta_vector, 
@@ -241,8 +241,9 @@ class BehaviouralPlanner:
                                      lead_car_position[1] - ego_state[1]]
             lead_car_distance = np.linalg.norm(lead_car_delta_vector)
 
-            # Add a 15m buffer to prevent oscillations for the distance check.
-            if lead_car_distance < self._follow_lead_vehicle_lookahead + 15:
+            # Add a 5m buffer to prevent oscillations for the distance check.
+            if lead_car_distance > 5 + self._follow_lead_vehicle_lookahead + compute_stop_distance(ego_state[3]):
+                self._follow_lead_vehicle = False
                 return
             # Check to see if the lead vehicle is still within the ego vehicle's
             # frame of view.
@@ -303,3 +304,8 @@ def pointOnSegment(p1, p2, p3):
         return True
     else:
         return False
+
+
+def compute_stop_distance(speed):
+    """Computes the stop distance given the speed."""
+    return(speed * 3.6 / 10) ** 2

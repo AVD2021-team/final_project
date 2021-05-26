@@ -40,6 +40,9 @@ six==1.16.0
 sklearn==0.0
 tensorboard==1.14.0
 tensorflow==1.14.0
+keras==2.3.1
+opencv-python==4.5.1.48
+transforms3d==0.3.1
 tensorflow-estimator==1.14.0
 termcolor==1.1.0
 threadpoolctl==2.1.0
