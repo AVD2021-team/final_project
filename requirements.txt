@@ -8,4 +8,4 @@ scipy==1
 tensorflow==1.14.0
 keras==2.3.1
 opencv-python==4.5.1.48
-transforms3d
+transforms3d==0.3.1
