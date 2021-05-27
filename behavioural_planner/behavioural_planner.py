@@ -16,7 +16,7 @@ from local_planner.velocity_planner import calc_distance
 
 
 class BehaviouralPlanner:
-    def __init__(self, lookahead, lead_vehicle_lookahead, a_max):
+    def __init__(self, lookahead, lead_vehicle_lookahead, a_max, intersection_lines):
         self._lookahead = lookahead
         self._follow_lead_vehicle_lookahead = lead_vehicle_lookahead
         self._state = FollowLaneState(self)
@@ -27,6 +27,7 @@ class BehaviouralPlanner:
         self._stop_count = 0
         self._lookahead_collision_index = 0
         self._a_max = a_max
+        self._intersection_lines = intersection_lines
 
     def set_lookahead(self, lookahead):
         self._lookahead = lookahead
@@ -34,6 +35,10 @@ class BehaviouralPlanner:
     # Handles state transitions and computes the goal state.
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         self._state.transition_state(waypoints, ego_state, closed_loop_speed)
+
+    def update_goal(self, waypoints, goal_index):
+        self._goal_index = goal_index
+        self._goal_state = waypoints[goal_index]
 
     def transition_to(self, state: BehaviouralPlannerState):
         """

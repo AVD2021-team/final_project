@@ -34,7 +34,7 @@ from carla.planner.city_track import CityTrack
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
 PLAYER_START_INDEX = 113  # spawn index for player
-DESTINATION_INDEX = 15  # Setting a Destination HERE
+DESTINATION_INDEX = 131  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
@@ -547,6 +547,8 @@ def exec_waypoint_nav_demo(args):
         prev_y = False
         # Put waypoints in the lane
         previous_waypoint = mission_planner._map.convert_to_world(waypoints_route[0])
+        
+        intersection_lines = []
         for i in range(1, len(waypoints_route)):
             point = waypoints_route[i]
 
@@ -563,7 +565,7 @@ def exec_waypoint_nav_demo(args):
             prev_x = abs(dx) > 0.1
             prev_y = abs(dy) > 0.1
 
-            if point in intersection_nodes:
+            if point in intersection_nodes:                
                 prev_start_intersection = mission_planner._map.convert_to_world(waypoints_route[i - 2])
                 center_intersection = mission_planner._map.convert_to_world(waypoints_route[i])
 
@@ -572,6 +574,8 @@ def exec_waypoint_nav_demo(args):
 
                 start_intersection = make_correction(start_intersection, prev_start_intersection, TURN_SPEED)
                 end_intersection = make_correction(end_intersection, center_intersection, TURN_SPEED)
+                
+                intersection_lines.append(start_intersection)
 
                 dx = start_intersection[0] - end_intersection[0]
                 dy = start_intersection[1] - end_intersection[1]
@@ -770,7 +774,7 @@ def exec_waypoint_nav_demo(args):
             SLOW_SPEED,
             STOP_LINE_BUFFER
         )
-        bp = behavioural_planner.BehaviouralPlanner(BP_LOOKAHEAD_BASE, LEAD_VEHICLE_LOOKAHEAD, A_MAX)
+        bp = behavioural_planner.BehaviouralPlanner(BP_LOOKAHEAD_BASE, LEAD_VEHICLE_LOOKAHEAD, A_MAX, intersection_lines)
 
         #############################################
         # Scenario Execution Loop

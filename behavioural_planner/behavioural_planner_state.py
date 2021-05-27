@@ -75,8 +75,13 @@ class BehaviouralPlannerState(ABC):
         while waypoints[goal_index][2] <= 0.1:
             goal_index += 1
 
-        self.context._goal_index = goal_index
-        self.context._goal_state = waypoints[goal_index]
+        self.context.update_goal(waypoints, goal_index)
+'''
+    def _check_for_traffic_light(self, waypoints, ego_state):
+        
+        closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
+        goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
+'''
 
 
 class FollowLaneState(BehaviouralPlannerState):
@@ -96,6 +101,7 @@ class FollowLaneState(BehaviouralPlannerState):
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("FOLLOW_LANE")
         self._update_goal(waypoints, ego_state)
+
 
 
 class DecelerateToStopState(BehaviouralPlannerState):
