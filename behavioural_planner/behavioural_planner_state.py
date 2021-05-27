@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from traffic_light_detector import TrafficLightState
 
 # Stop speed threshold
 STOP_THRESHOLD = 0.02
@@ -65,7 +66,7 @@ class BehaviouralPlannerState(ABC):
         """
         pass
 
-    def _update_goal(self, waypoints, ego_state):
+    def _get_new_goal(self, waypoints, ego_state):
         # First, find the closest index to the ego vehicle.
         closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
 
@@ -75,7 +76,9 @@ class BehaviouralPlannerState(ABC):
         while waypoints[goal_index][2] <= 0.1:
             goal_index += 1
 
-        self.context.update_goal(waypoints, goal_index)
+        return goal_index
+
+
 '''
     def _check_for_traffic_light(self, waypoints, ego_state):
         
@@ -100,7 +103,8 @@ class FollowLaneState(BehaviouralPlannerState):
 
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("FOLLOW_LANE")
-        self._update_goal(waypoints, ego_state)
+        goal_index = self._get_new_goal(waypoints, ego_state)
+        self.context.update_goal(waypoints, goal_index)
 
 
 
@@ -113,10 +117,14 @@ class DecelerateToStopState(BehaviouralPlannerState):
     """
 
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
-        # print("DECELERATE_TO_STOP")
-        if abs(closed_loop_speed) <= STOP_THRESHOLD:
-            self.context.transition_to(StayStoppedState(self.context))
-            self.context._stop_count = 0
+        # If the traffic light is green or has disappeared, transition to Follow lane
+        if self.context.get_tl_state() == TrafficLightState.GO or self.context.get_tl_state == TrafficLightState.NO_TL:
+            self.context.transition_to(FollowLaneState(self.context))
+
+        # If the TL is red and we have stopped, transition to Stay Stopped
+        #if abs(closed_loop_speed) <= STOP_THRESHOLD:
+            # self.context.transition_to(StayStoppedState(self.context))
+            # self.context._stop_count = 0
 
 
 class StayStoppedState(BehaviouralPlannerState):
@@ -136,7 +144,9 @@ class StayStoppedState(BehaviouralPlannerState):
         # We've stopped for the required amount of time, so the new goal
         # index for the stop line is not relevant. Use the goal index
         # that is the lookahead distance away.
-        self._update_goal(waypoints, ego_state)
+
+        goal_index = self._get_new_goal(waypoints, ego_state)
+        self.context.update_goal(waypoints, goal_index)
 
         # If the stop sign is no longer along our path, we can now
         # transition back to our lane following state.

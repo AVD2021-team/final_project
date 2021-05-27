@@ -8,7 +8,7 @@ import math
 sys.path.append(os.path.realpath(os.path.dirname(__file__)))
 from behavioural_planner_state import BehaviouralPlannerState, FollowLaneState
 from local_planner.velocity_planner import calc_distance
-
+from traffic_light_detector import TrafficLightState
 # State machine states
 # FOLLOW_LANE = 0
 # DECELERATE_TO_STOP = 1
@@ -24,13 +24,20 @@ class BehaviouralPlanner:
         self._obstacle_on_lane = False
         self._goal_state = [0.0, 0.0, 0.0]
         self._goal_index = 0
-        self._stop_count = 0
+        # self._stop_count = 0
         self._lookahead_collision_index = 0
         self._a_max = a_max
         self._intersection_lines = intersection_lines
+        self._tl_state = TrafficLightState.NO_TL
 
     def set_lookahead(self, lookahead):
         self._lookahead = lookahead
+
+    def set_tl_state(self, tl_state: TrafficLightState):
+        self._tl_state = tl_state
+
+    def get_tl_state(self):
+        return self._tl_state
 
     # Handles state transitions and computes the goal state.
     def transition_state(self, waypoints, ego_state, closed_loop_speed):

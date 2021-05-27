@@ -814,11 +814,12 @@ def exec_waypoint_nav_demo(args):
                 tl_images.append(tl_image)
 
             # print state (NO_TL, GO, STOP)
-            curr_state, score = tld.update_state(boxes_dict)
-            if prev_tl_state != curr_state:
-                prev_tl_state = curr_state
-                print(f"Nearest TL: {(curr_state.name, score)}")
+            curr_tl_state, score = tld.update_state(boxes_dict)
+            if prev_tl_state != curr_tl_state:
+                prev_tl_state = curr_tl_state
+                print(f"Nearest TL: {(curr_tl_state.name, score)}")
 
+            bp.set_tl_state(curr_tl_state)
             # Shows Traffic Light Detector output
             cv2.imshow("Traffic Lights", np.hstack(tuple(tl_images)))
             cv2.waitKey(1)
