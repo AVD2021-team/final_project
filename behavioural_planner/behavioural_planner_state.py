@@ -79,12 +79,23 @@ class BehaviouralPlannerState(ABC):
         return goal_index
 
 
-'''
-    def _check_for_traffic_light(self, waypoints, ego_state):
+
+    def _get_intersection_goal(self, waypoints, ego_state):
         
         closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
         goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
-'''
+        
+        intersection_lines = self.context.get_intersection_lines()
+        
+        for i in range(goal_index-1,closest_index-1,-1):
+            for inter in intersection_lines:
+                print(waypoints[i][:2])
+                print(inter[:2])
+                if waypoints[i][0] ==  inter[0] and waypoints[i][1] ==  inter[1]:    
+                    goal_index = i
+                    return goal_index
+
+        return None
 
 
 class FollowLaneState(BehaviouralPlannerState):
@@ -104,8 +115,14 @@ class FollowLaneState(BehaviouralPlannerState):
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("FOLLOW_LANE")
         goal_index = self._get_new_goal(waypoints, ego_state)
+
+        intersection_goal = self._get_intersection_goal(waypoints,ego_state)
+
         self.context.update_goal(waypoints, goal_index)
 
+        if intersection_goal is not None and self.context.get_tl_state() == TrafficLightState.STOP:
+            self.context.update_goal(waypoints, intersection_goal,0)
+            self.context.transition_to(DecelerateToStopState(self.context))
 
 
 class DecelerateToStopState(BehaviouralPlannerState):

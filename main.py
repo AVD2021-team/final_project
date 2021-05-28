@@ -41,6 +41,7 @@ SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
 SEED_VEHICLES = 0  # seed for vehicle spawn randomizer
 ###############################################################################àà
 
+INTERSECTION_LINE_SHIFT = 10
 ###############################################################################
 
 ITER_FOR_SIM_TIME_STEP = 10  # no. iterations to compute approx sim time-step
@@ -565,7 +566,8 @@ def exec_waypoint_nav_demo(args):
             prev_x = abs(dx) > 0.1
             prev_y = abs(dy) > 0.1
 
-            if point in intersection_nodes:                
+            if point in intersection_nodes:
+                                
                 prev_start_intersection = mission_planner._map.convert_to_world(waypoints_route[i - 2])
                 center_intersection = mission_planner._map.convert_to_world(waypoints_route[i])
 
@@ -575,7 +577,7 @@ def exec_waypoint_nav_demo(args):
                 start_intersection = make_correction(start_intersection, prev_start_intersection, TURN_SPEED)
                 end_intersection = make_correction(end_intersection, center_intersection, TURN_SPEED)
                 
-                intersection_lines.append(start_intersection)
+                intersection_lines.append(mission_planner._map.convert_to_world(waypoints_route[i - INTERSECTION_LINE_SHIFT]))
 
                 dx = start_intersection[0] - end_intersection[0]
                 dy = start_intersection[1] - end_intersection[1]

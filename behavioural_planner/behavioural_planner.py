@@ -43,9 +43,15 @@ class BehaviouralPlanner:
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         self._state.transition_state(waypoints, ego_state, closed_loop_speed)
 
-    def update_goal(self, waypoints, goal_index):
+    def update_goal(self, waypoints, goal_index, speed=None):
         self._goal_index = goal_index
         self._goal_state = waypoints[goal_index]
+
+        if speed is not None:
+            self._goal_state[2] = 0
+
+    def get_intersection_lines(self):
+        return self._intersection_lines
 
     def transition_to(self, state: BehaviouralPlannerState):
         """
