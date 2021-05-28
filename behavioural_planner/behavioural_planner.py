@@ -48,7 +48,7 @@ class BehaviouralPlanner:
         self._goal_state = waypoints[goal_index]
 
         if speed is not None:
-            self._goal_state[2] = 0
+            self._goal_state[2] = speed
 
     def get_intersection_lines(self):
         return self._intersection_lines

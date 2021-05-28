@@ -33,16 +33,13 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 113  # spawn index for player
-DESTINATION_INDEX = 131  # Setting a Destination HERE
+PLAYER_START_INDEX = 123  # spawn index for player
+DESTINATION_INDEX = 15  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
 SEED_VEHICLES = 0  # seed for vehicle spawn randomizer
 ###############################################################################àà
-
-INTERSECTION_LINE_SHIFT = 10
-###############################################################################
 
 ITER_FOR_SIM_TIME_STEP = 10  # no. iterations to compute approx sim time-step
 WAIT_TIME_BEFORE_START = 1.00  # game seconds (time before controller start)
@@ -123,7 +120,7 @@ SENSORS = {
         Sensor.LargeFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
         PostProcessing='SceneFinal',
         ImageSizeX=400, ImageSizeY=400,
-        FOV=110
+        FOV=120
     ),
     Sensor.MediumFOVCameraRGB: Camera(
         Sensor.MediumFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
@@ -577,7 +574,7 @@ def exec_waypoint_nav_demo(args):
                 start_intersection = make_correction(start_intersection, prev_start_intersection, TURN_SPEED)
                 end_intersection = make_correction(end_intersection, center_intersection, TURN_SPEED)
                 
-                intersection_lines.append(mission_planner._map.convert_to_world(waypoints_route[i - INTERSECTION_LINE_SHIFT]))
+                intersection_lines.append(start_intersection)
 
                 dx = start_intersection[0] - end_intersection[0]
                 dy = start_intersection[1] - end_intersection[1]
@@ -721,6 +718,11 @@ def exec_waypoint_nav_demo(args):
                                  y0=[start_y] * INTERP_MAX_POINTS_PLOT,
                                  color=[1, 0.5, 0.0],
                                  linewidth=3)
+        # Add intersection lines
+        for i in range(len(intersection_lines)):
+            trajectory_fig.add_graph(f"intersection_line_{i+1}", window_size=1, marker="s", color="y",
+                                     markertext="Intersection", marker_text_offset=1)
+
 
         # Add local path proposals
         for i in range(NUM_PATHS):
@@ -807,26 +809,6 @@ def exec_waypoint_nav_demo(args):
             # Gather current data from the CARLA server
             measurement_data, sensor_data = client.read_data()
 
-            # Visualization of sensor data
-            for sensor in SENSORS:
-                rgb_image = get_sensor_output(sensor_data, sensor)
-                boxes = tld.predict_image(rgb_image)
-                boxes_dict[sensor] = boxes
-                tl_image = tld.draw_boxes(rgb_image, boxes)
-                tl_images.append(tl_image)
-
-            # print state (NO_TL, GO, STOP)
-            curr_tl_state, score = tld.update_state(boxes_dict)
-            if prev_tl_state != curr_tl_state:
-                prev_tl_state = curr_tl_state
-                print(f"Nearest TL: {(curr_tl_state.name, score)}")
-
-            bp.set_tl_state(curr_tl_state)
-            # Shows Traffic Light Detector output
-            cv2.imshow("Traffic Lights", np.hstack(tuple(tl_images)))
-            cv2.waitKey(1)
-            tl_images.clear()
-
             # UPDATE HERE the obstacles list
             obstacles = []
 
@@ -887,6 +869,26 @@ def exec_waypoint_nav_demo(args):
             # to be operating at a frequency that is a division to the 
             # simulation frequency.
             if frame % LP_FREQUENCY_DIVISOR == 0:
+                # Visualization of sensor data
+                for sensor in SENSORS:
+                    rgb_image = get_sensor_output(sensor_data, sensor)
+                    boxes = tld.predict_image(rgb_image)
+                    boxes_dict[sensor] = boxes
+                    tl_image = tld.draw_boxes(rgb_image, boxes)
+                    tl_images.append(tl_image)
+
+                # print state (NO_TL, GO, STOP)
+                curr_tl_state, score = tld.update_state(boxes_dict)
+                if prev_tl_state != curr_tl_state:
+                    prev_tl_state = curr_tl_state
+                    print(f"Nearest TL: {(curr_tl_state.name, score)}")
+
+                bp.set_tl_state(curr_tl_state)
+                # Shows Traffic Light Detector output
+                cv2.imshow("Traffic Lights", np.hstack(tuple(tl_images)))
+                cv2.waitKey(1)
+                tl_images.clear()
+
                 # Compute open loop speed estimate.
                 open_loop_speed = lp._velocity_planner.get_open_loop_speed(current_timestamp - prev_timestamp)
 
@@ -1009,6 +1011,9 @@ def exec_waypoint_nav_demo(args):
                     y = np.reshape(y, y.shape[0] * y.shape[1])
 
                     trajectory_fig.roll("obstacles_points", x, y)
+
+                for i in range(len(intersection_lines)):
+                    trajectory_fig.roll(f"intersection_line_{i+1}", intersection_lines[i][0], intersection_lines[i][1])
 
                 forward_speed_fig.roll("forward_speed",
                                        current_timestamp,

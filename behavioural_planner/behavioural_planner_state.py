@@ -1,10 +1,15 @@
 from abc import ABC, abstractmethod
 from traffic_light_detector import TrafficLightState
+import numpy as np
 
 # Stop speed threshold
 STOP_THRESHOLD = 0.02
 # Number of cycles before moving from stop sign.
 STOP_COUNTS = 10
+
+# Distance from intersection where to stop
+DIST_SPOT_INTER = 30.0 # meters
+DIST_STOP_INTER = 5.0 # meters
 
 
 class BehaviouralPlannerState(ABC):
@@ -87,13 +92,18 @@ class BehaviouralPlannerState(ABC):
         
         intersection_lines = self.context.get_intersection_lines()
         
-        for i in range(goal_index-1,closest_index-1,-1):
+        for i in range(closest_index, goal_index):
             for inter in intersection_lines:
-                print(waypoints[i][:2])
-                print(inter[:2])
-                if waypoints[i][0] ==  inter[0] and waypoints[i][1] ==  inter[1]:    
-                    goal_index = i
-                    return goal_index
+                dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
+                if dist_spot < DIST_SPOT_INTER:
+                    return i + 5
+                #    for j in range(i, len(waypoints)):
+                #        dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
+                #        print(i, j, dist_stop)
+                #        if dist_stop < DIST_STOP_INTER:
+                #            return j
+                #
+                #    raise RuntimeError("Could not find Point to stop at Intersection!")
 
         return None
 
@@ -116,13 +126,17 @@ class FollowLaneState(BehaviouralPlannerState):
         # print("FOLLOW_LANE")
         goal_index = self._get_new_goal(waypoints, ego_state)
 
-        intersection_goal = self._get_intersection_goal(waypoints,ego_state)
+        intersection_goal = None
+        if self.context.get_tl_state() == TrafficLightState.STOP:
+            intersection_goal = self._get_intersection_goal(waypoints,ego_state)
 
-        self.context.update_goal(waypoints, goal_index)
-
-        if intersection_goal is not None and self.context.get_tl_state() == TrafficLightState.STOP:
-            self.context.update_goal(waypoints, intersection_goal,0)
+        if intersection_goal is not None:
+            self.context.update_goal(waypoints, intersection_goal, 0)
             self.context.transition_to(DecelerateToStopState(self.context))
+        else:
+            self.context.update_goal(waypoints, goal_index)
+
+
 
 
 class DecelerateToStopState(BehaviouralPlannerState):
