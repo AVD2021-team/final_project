@@ -33,8 +33,8 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 123  # spawn index for player
-DESTINATION_INDEX = 15  # Setting a Destination HERE
+PLAYER_START_INDEX = 50  # spawn index for player
+DESTINATION_INDEX = 134  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
@@ -89,7 +89,7 @@ TIME_GAP = 1.0  # s
 PATH_SELECT_WEIGHT = 10
 A_MAX = 2.5  # m/s^2
 SLOW_SPEED = 2.0  # m/s
-STOP_LINE_BUFFER = 3.5  # m
+STOP_LINE_BUFFER = 5  # m Default: 3.5
 LEAD_VEHICLE_LOOKAHEAD = 10.0  # m
 LP_FREQUENCY_DIVISOR = 2  # Frequency divisor to make the
 DESIRED_SPEED = 8  # m/s
@@ -120,7 +120,7 @@ SENSORS = {
         Sensor.LargeFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
         PostProcessing='SceneFinal',
         ImageSizeX=400, ImageSizeY=400,
-        FOV=120
+        FOV=110
     ),
     Sensor.MediumFOVCameraRGB: Camera(
         Sensor.MediumFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
@@ -129,13 +129,13 @@ SENSORS = {
         ImageSizeX=400, ImageSizeY=400,
         FOV=60
     ),
-    Sensor.NarrowFOVCameraRGB: Camera(
-        Sensor.NarrowFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
-        RotationYaw=4,
-        PostProcessing='SceneFinal',
-        ImageSizeX=400, ImageSizeY=400,
-        FOV=20
-    ),
+    #Sensor.NarrowFOVCameraRGB: Camera(
+    #    Sensor.NarrowFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
+    #    RotationYaw=4,
+    #    PostProcessing='SceneFinal',
+    #    ImageSizeX=400, ImageSizeY=400,
+    #    FOV=20
+    #),
 }
 
 
@@ -935,7 +935,7 @@ def exec_waypoint_nav_demo(args):
                     else:
                         lead_car_state = None
 
-                    decelerate_to_stop = isinstance(bp._state, DecelerateToStopState)
+                    decelerate_to_stop = bp._state.name == "DecelerateToStop"
                     local_waypoints = lp._velocity_planner.compute_velocity_profile(best_path, desired_speed,
                         ego_state, current_speed, decelerate_to_stop, lead_car_state, bp._follow_lead_vehicle)
 

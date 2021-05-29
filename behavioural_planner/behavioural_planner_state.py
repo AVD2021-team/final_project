@@ -7,14 +7,13 @@ STOP_THRESHOLD = 0.02
 # Number of cycles before moving from stop sign.
 STOP_COUNTS = 10
 
-# Distance from intersection where to stop
-DIST_SPOT_INTER = 30.0 # meters
-DIST_STOP_INTER = 5.0 # meters
-
+# Distance from intersection where we spot the stop line
+DIST_SPOT_INTER = 15 # meters
+DIST_STOP_INTER = 3.5 # meters
 
 class BehaviouralPlannerState(ABC):
 
-    __slots__ = '_context'
+    __slots__ = '_context','name'
 
     def __init__(self, context):
         self._context = context
@@ -96,14 +95,13 @@ class BehaviouralPlannerState(ABC):
             for inter in intersection_lines:
                 dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
                 if dist_spot < DIST_SPOT_INTER:
-                    return i + 5
-                #    for j in range(i, len(waypoints)):
-                #        dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
-                #        print(i, j, dist_stop)
-                #        if dist_stop < DIST_STOP_INTER:
-                #            return j
-                #
-                #    raise RuntimeError("Could not find Point to stop at Intersection!")
+                    for j in range(i, len(waypoints)):
+                        dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
+                        print(i, j, dist_stop)
+                        if dist_stop < DIST_STOP_INTER:
+                            return j-1
+
+                    raise RuntimeError("Could not find Point to stop at Intersection!")
 
         return None
 
@@ -121,6 +119,9 @@ class FollowLaneState(BehaviouralPlannerState):
     complete, and examine the check_for_stop_signs() function to
     understand it.
     """
+    def __init__(self, context):
+        super().__init__(context)
+        self.name = "FollowLane"
 
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("FOLLOW_LANE")
@@ -138,7 +139,6 @@ class FollowLaneState(BehaviouralPlannerState):
 
 
 
-
 class DecelerateToStopState(BehaviouralPlannerState):
     """
     In this state, check if we have reached a complete stop. Use the
@@ -146,10 +146,13 @@ class DecelerateToStopState(BehaviouralPlannerState):
     stop, and compare to STOP_THRESHOLD.  If so, transition to the next
     state.
     """
+    def __init__(self, context):
+        super().__init__(context)
+        self.name = "DecelerateToStop"
 
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # If the traffic light is green or has disappeared, transition to Follow lane
-        if self.context.get_tl_state() == TrafficLightState.GO or self.context.get_tl_state == TrafficLightState.NO_TL:
+        if self.context.get_tl_state() == TrafficLightState.GO or self.context.get_tl_state() == TrafficLightState.NO_TL:
             self.context.transition_to(FollowLaneState(self.context))
 
         # If the TL is red and we have stopped, transition to Stay Stopped
@@ -158,12 +161,16 @@ class DecelerateToStopState(BehaviouralPlannerState):
             # self.context._stop_count = 0
 
 
+
 class StayStoppedState(BehaviouralPlannerState):
     """
     In this state, check to see if we have stayed stopped for at
     least STOP_COUNTS number of cycles. If so, we can now leave
     the stop sign and transition to the next state.
     """
+    def __init__(self, context):
+        super().__init__(context)
+        self.name = "StayStopped"
 
     def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("STAY_STOPPED")
