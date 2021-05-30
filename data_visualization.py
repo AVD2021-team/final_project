@@ -12,6 +12,7 @@ class Sensor(Enum):
     LargeFOVCameraRGB = "LargeFOVCameraRGB"
     NarrowFOVCameraRGB = "NarrowFOVCameraRGB"
     MediumFOVCameraRGB = "MediumFOVCameraRGB"
+    DepthCamera = "DepthCamera"
 
 
 def visualize_sensor_data(sensor_data, sensor, showing_dims=None):
@@ -40,11 +41,13 @@ def get_sensor_output(sensor_data, sensor):
     if sensor_data.get(sensor.value, None) is not None:
         image = None
 
-        if sensor in (Sensor.LargeFOVCameraRGB, Sensor.MediumFOVCameraRGB, Sensor.NarrowFOVCameraRGB):
+        if sensor in (Sensor.LargeFOVCameraRGB, Sensor.MediumFOVCameraRGB, Sensor.NarrowFOVCameraRGB,):
             # Camera RGB data
             image = image_converter.to_bgra_array(sensor_data[sensor.value])
+        elif sensor in (Sensor.DepthCamera,):
+            image = image_converter.depth_to_array(sensor_data[sensor.value])
+        else:
+            raise RuntimeError(f"get_sensor_output not implemented for {sensor.value}")
 
-        return image
+    return image
 
-    else:
-        return None

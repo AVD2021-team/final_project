@@ -221,8 +221,11 @@ class BoundBox:
 
         return self.score
 
+    def get_bounds(self):
+        return (self.xmin, self.ymin, self.xmax, self.ymax)
+
     def get_area(self):
         return (self.xmax - self.xmin) * (self.ymax - self.ymin)
 
     def __repr__(self):
-        return f"{(self.xmin, self.xmax)}, {(self.ymin, self.ymax)}"
+        return f"{self.get_label()} {self.get_score()} {(self.xmin, self.xmax)}, {(self.ymin, self.ymax)}"

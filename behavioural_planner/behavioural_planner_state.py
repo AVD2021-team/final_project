@@ -97,12 +97,10 @@ class BehaviouralPlannerState(ABC):
                 if dist_spot < DIST_SPOT_INTER:
                     for j in range(i, len(waypoints)):
                         dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
-                        print(i, j, dist_stop)
+
                         if dist_stop < DIST_STOP_INTER:
+                            print(f"Stop Waypoint: {j-1} {waypoints[j-1]}")
                             return j-1
-
-                    raise RuntimeError("Could not find Point to stop at Intersection!")
-
         return None
 
 

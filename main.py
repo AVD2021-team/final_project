@@ -16,10 +16,10 @@ import configparser
 import cv2
 from local_planner import local_planner
 from behavioural_planner import behavioural_planner
-from behavioural_planner.behavioural_planner_state import DecelerateToStopState
 from traffic_light_detector import TrafficLightDetector, TrafficLightState
 from data_visualization import visualize_sensor_data, get_sensor_output, Sensor
 import transforms3d
+
 
 # Script level imports
 sys.path.append(os.path.abspath(sys.path[0] + '/..'))
@@ -30,11 +30,12 @@ from carla.settings import CarlaSettings
 from carla.tcp import TCPConnectionError
 from carla.planner.city_track import CityTrack
 
+
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 50  # spawn index for player
-DESTINATION_INDEX = 134  # Setting a Destination HERE
+PLAYER_START_INDEX = 133  # spawn index for player
+DESTINATION_INDEX = 110  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
@@ -89,7 +90,7 @@ TIME_GAP = 1.0  # s
 PATH_SELECT_WEIGHT = 10
 A_MAX = 2.5  # m/s^2
 SLOW_SPEED = 2.0  # m/s
-STOP_LINE_BUFFER = 3.5  # m Default: 3.5
+STOP_LINE_BUFFER = 5.0  # m Default: 3.5
 LEAD_VEHICLE_LOOKAHEAD = 10.0  # m
 LP_FREQUENCY_DIVISOR = 2  # Frequency divisor to make the
 DESIRED_SPEED = 8  # m/s
@@ -129,6 +130,13 @@ SENSORS = {
         ImageSizeX=400, ImageSizeY=400,
         FOV=60
     ),
+    #Sensor.MediumFOVCameraRGB: Camera(
+    #    Sensor.MediumFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
+    #    RotationYaw=4,
+    #    PostProcessing='SceneFinal',
+    #    ImageSizeX=400, ImageSizeY=400,
+    #    FOV=60
+    #),
     #Sensor.NarrowFOVCameraRGB: Camera(
     #    Sensor.NarrowFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
     #    RotationYaw=4,
@@ -416,6 +424,52 @@ def make_correction(waypoint, previous_waypoint, desired_speed):
     waypoint_on_lane[2] = desired_speed
 
     return waypoint_on_lane
+
+
+def filter_bbs_by_depth(boxes, distance_image):
+    """
+    Returns a list of BoundBox objects filtered by their mean distance.
+    distance_image is an array of distance measures in meters with the shape of the depth image.
+    """
+
+    new_boxes = []
+    img_shape = distance_image.shape    # assumed (h, w, color)
+    if boxes:
+        for box in boxes:
+            bounds = box.get_bounds()   # (x_min, y_min, x_max, y_max)
+            bounds = ( int(bounds[0]*img_shape[1]),
+                       int(bounds[1]*img_shape[0]),
+                       int(bounds[2]*img_shape[1]),
+                       int(bounds[3]*img_shape[0]))
+            bounded_dist = distance_image[bounds[1]:bounds[3], bounds[0]:bounds[2]]
+
+            # Gaussian-like kernel
+            x, y = np.meshgrid(np.linspace(-1, 1, bounded_dist.shape[1]), np.linspace(-1, 1, bounded_dist.shape[0]))
+            d = np.sqrt(x * x + y * y)
+            sigma, mu = 1.0, 0.0
+            g = np.exp(-((d - mu) ** 2 / (2.0 * sigma ** 2)))
+
+            dist = np.average(bounded_dist * g)
+            #dist = bounded_dist[int(bounded_dist.shape[0]/2), int(bounded_dist.shape[1]/2)]
+            #dist = np.average(bounded_dist)
+            if dist < BB_DISTANCE_TH:
+                new_boxes.append(box)
+
+    return new_boxes
+
+
+def zoom_image(image, zoom_factor):
+    """
+    Returns the image zoomed towards the center by the zoom factor.
+    """
+    image = image.copy()
+    img_size = (int(image.shape[0] / zoom_factor), int(image.shape[1] / zoom_factor))
+    img_center = (int(image.shape[0] / 2), int(image.shape[1] / 2))
+
+    image = image[int(img_center[0] - img_size[0] / 2):int(img_center[0] + img_size[0] / 2),
+                       int(img_center[1] - img_size[1] / 2):int(img_center[1] + img_size[0] / 2)]
+
+    return image
 
 
 def exec_waypoint_nav_demo(args):
@@ -904,6 +958,7 @@ def exec_waypoint_nav_demo(args):
                 cv2.imshow("Traffic Lights", np.hstack(tuple(tl_images)))
                 cv2.waitKey(1)
                 tl_images.clear()
+                boxes.clear()
 
                 # Compute open loop speed estimate.
                 open_loop_speed = lp._velocity_planner.get_open_loop_speed(current_timestamp - prev_timestamp)

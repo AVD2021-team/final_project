@@ -18,9 +18,10 @@ class TrafficLightState(Enum):
 
 
 class TrafficLightDetector(YOLO):
-
     # Minimum threshold to refuse false positives
-    MIN_TH = 0.45
+    MIN_TH = 0.1
+    # MIN_TH_STOP = 0.40
+    # MIN_TH_GO = 0.70
 
     # Minimum number of frames before change state
     MIN_STATE_FRAMES = 5
@@ -64,9 +65,11 @@ class TrafficLightDetector(YOLO):
         Proximity and is inferred with a heuristic based on box area.
         """
         new_state = self._light_state(boxes[Sensor.MediumFOVCameraRGB])
+        # print(self._light_state(boxes[Sensor.MediumFOVCameraRGB])[0], self._light_state(boxes[Sensor.LargeFOVCameraRGB])[0])
         if new_state[0] == TrafficLightState.NO_TL:
             new_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
-            #if new_state[0] == TrafficLightState.NO_TL:
+
+            # if new_state[0] == TrafficLightState.NO_TL:
             #    new_state = self._light_state(boxes[Sensor.NarrowFOVCameraRGB])
 
         if self._state is None:
@@ -77,8 +80,13 @@ class TrafficLightDetector(YOLO):
         elif new_state[0] == self._new_state[0]:
             self._state_counter += 1
 
-        if self._state_counter >= self.MIN_STATE_FRAMES:
+        if self._state_counter >= self.MIN_STATE_FRAMES + 20 and new_state[0] == TrafficLightState.NO_TL:
             self._state = new_state
+            self._state_counter = 0
+
+        elif self._state_counter >= self.MIN_STATE_FRAMES and new_state[0] != TrafficLightState.NO_TL:
+            self._state = new_state
+            self._state_counter = 0
 
         self._new_state = new_state
         return self.get_state()
@@ -93,7 +101,10 @@ class TrafficLightDetector(YOLO):
         # Heuristic
         box = sorted(boxes_, key=lambda b: b.get_area(), reverse=True)[0]
 
-        if box.get_label() == TrafficLightState.STOP.value:
-            return TrafficLightState.STOP, box.get_score()
+        # if box.get_label() == TrafficLightState.STOP.value:
+        #    return TrafficLightState.STOP, box.get_score()
 
-        return TrafficLightState.GO, box.get_score()
+        if box.get_label() == TrafficLightState.GO.value:
+            return TrafficLightState.GO, box.get_score()
+
+        return TrafficLightState.STOP, box.get_score()
