@@ -12,6 +12,7 @@ class Sensor(Enum):
     LargeFOVCameraRGB = "LargeFOVCameraRGB"
     NarrowFOVCameraRGB = "NarrowFOVCameraRGB"
     MediumFOVCameraRGB = "MediumFOVCameraRGB"
+    RightLargeFOVCameraRGB = "RightLargeFOVCameraRGB"
     DepthCamera = "DepthCamera"
 
 
@@ -41,7 +42,7 @@ def get_sensor_output(sensor_data, sensor):
     if sensor_data.get(sensor.value, None) is not None:
         image = None
 
-        if sensor in (Sensor.LargeFOVCameraRGB, Sensor.MediumFOVCameraRGB, Sensor.NarrowFOVCameraRGB,):
+        if sensor in (Sensor.LargeFOVCameraRGB, Sensor.MediumFOVCameraRGB, Sensor.NarrowFOVCameraRGB, Sensor.RightLargeFOVCameraRGB, ):
             # Camera RGB data
             image = image_converter.to_bgra_array(sensor_data[sensor.value])
         elif sensor in (Sensor.DepthCamera,):

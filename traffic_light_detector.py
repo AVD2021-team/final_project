@@ -24,7 +24,7 @@ class TrafficLightDetector(YOLO):
     # MIN_TH_GO = 0.70
 
     # Minimum number of frames before change state
-    MIN_STOP_FRAMES = 1
+    MIN_STOP_FRAMES = 2
     MIN_GO_FRAMES = 5
     MIN_NOTL_FRAMES = 20
 
@@ -68,11 +68,15 @@ class TrafficLightDetector(YOLO):
         """
         medium_state = self._light_state(boxes[Sensor.MediumFOVCameraRGB])
         large_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
+        right_state = self._light_state(boxes[Sensor.RightLargeFOVCameraRGB])
 
-        if medium_state[0] == TrafficLightState.STOP or large_state[0] == TrafficLightState.STOP:
+        if medium_state[0] == TrafficLightState.STOP or large_state[0] == TrafficLightState.STOP or right_state[0] == TrafficLightState.STOP:
             new_state = TrafficLightState.STOP, min(medium_state[1], large_state[1])
         elif medium_state[0] == TrafficLightState.NO_TL:
-            new_state = large_state
+            if large_state[0] == TrafficLightState.NO_TL:
+                new_state = right_state
+            else:
+                new_state = large_state
         else:
             new_state = medium_state
 

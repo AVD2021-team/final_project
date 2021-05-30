@@ -34,8 +34,8 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 88  # spawn index for player
-DESTINATION_INDEX = 18  # Setting a Destination HERE
+PLAYER_START_INDEX = 3  # spawn index for player
+DESTINATION_INDEX = 12  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
@@ -125,18 +125,19 @@ SENSORS = {
     ),
     Sensor.MediumFOVCameraRGB: Camera(
         Sensor.MediumFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
-        RotationYaw=4,
+        RotationYaw=10,
         PostProcessing='SceneFinal',
         ImageSizeX=400, ImageSizeY=400,
-        FOV=60
+        FOV=50
     ),
-    #Sensor.MediumFOVCameraRGB: Camera(
-    #    Sensor.MediumFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
-    #    RotationYaw=4,
-    #    PostProcessing='SceneFinal',
-    #    ImageSizeX=400, ImageSizeY=400,
-    #    FOV=60
-    #),
+    Sensor.RightLargeFOVCameraRGB: Camera(
+        Sensor.RightLargeFOVCameraRGB.value, PositionX=-1.5, PositionY=1.0, PositionZ=1.0,
+        RotationYaw=45,
+        RotationPitch=0,
+        PostProcessing='SceneFinal',
+        ImageSizeX=400, ImageSizeY=400,
+        FOV=110
+    ),
     #Sensor.NarrowFOVCameraRGB: Camera(
     #    Sensor.NarrowFOVCameraRGB.value, PositionX=1.8, PositionY=0, PositionZ=1.3,
     #    RotationYaw=4,
