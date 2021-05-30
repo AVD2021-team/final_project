@@ -34,8 +34,8 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 133  # spawn index for player
-DESTINATION_INDEX = 110  # Setting a Destination HERE
+PLAYER_START_INDEX = 88  # spawn index for player
+DESTINATION_INDEX = 18  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer

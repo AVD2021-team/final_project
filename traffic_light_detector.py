@@ -24,7 +24,9 @@ class TrafficLightDetector(YOLO):
     # MIN_TH_GO = 0.70
 
     # Minimum number of frames before change state
-    MIN_STATE_FRAMES = 5
+    MIN_STOP_FRAMES = 1
+    MIN_GO_FRAMES = 5
+    MIN_NOTL_FRAMES = 20
 
     __slots__ = 'config', 'labels', '_state_counter', '_state', '_new_state'
 
@@ -64,13 +66,16 @@ class TrafficLightDetector(YOLO):
         Returns the state of the nearest traffic light. The traffic lights are detected in boxes.
         Proximity and is inferred with a heuristic based on box area.
         """
-        new_state = self._light_state(boxes[Sensor.MediumFOVCameraRGB])
-        # print(self._light_state(boxes[Sensor.MediumFOVCameraRGB])[0], self._light_state(boxes[Sensor.LargeFOVCameraRGB])[0])
-        if new_state[0] == TrafficLightState.NO_TL:
-            new_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
+        medium_state = self._light_state(boxes[Sensor.MediumFOVCameraRGB])
+        large_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
 
-            # if new_state[0] == TrafficLightState.NO_TL:
-            #    new_state = self._light_state(boxes[Sensor.NarrowFOVCameraRGB])
+        if medium_state[0] == TrafficLightState.STOP or large_state[0] == TrafficLightState.STOP:
+            new_state = TrafficLightState.STOP, min(medium_state[1], large_state[1])
+        elif medium_state[0] == TrafficLightState.NO_TL:
+            new_state = large_state
+        else:
+            new_state = medium_state
+
 
         if self._state is None:
             self._state = new_state
@@ -80,11 +85,9 @@ class TrafficLightDetector(YOLO):
         elif new_state[0] == self._new_state[0]:
             self._state_counter += 1
 
-        if self._state_counter >= self.MIN_STATE_FRAMES + 20 and new_state[0] == TrafficLightState.NO_TL:
-            self._state = new_state
-            self._state_counter = 0
-
-        elif self._state_counter >= self.MIN_STATE_FRAMES and new_state[0] != TrafficLightState.NO_TL:
+        if ((new_state[0] == TrafficLightState.NO_TL and self._state_counter >= self.MIN_NOTL_FRAMES) or
+           (new_state[0] == TrafficLightState.GO and self._state_counter >= self.MIN_GO_FRAMES) or
+           (new_state[0] == TrafficLightState.STOP and self._state_counter >= self.MIN_STOP_FRAMES)):
             self._state = new_state
             self._state_counter = 0
 
