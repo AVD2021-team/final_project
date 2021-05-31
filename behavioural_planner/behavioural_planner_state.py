@@ -94,11 +94,18 @@ class BehaviouralPlannerState(ABC):
         
         for i in range(closest_index, goal_index):
             for inter in intersection_lines:
+                print(type(inter))
+                print(inter)
+                print("ego state:", type(ego_state))
+                print(ego_state)
+                print("ego rpy:", type(ego_rpy))
+                print(ego_rpy)
                 car_loc_relative=self._transform_world_to_ego_frame(
                     [inter[0], inter[1], inter[2]],
                     [ego_state[0],ego_state[1],ego_state[2]],
                     ego_rpy)
                 if car_loc_relative[0]>0:
+                    print(car_loc_relative)
                     dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
                     if dist_spot < DIST_SPOT_INTER:
                         for j in range(i, len(waypoints)):
