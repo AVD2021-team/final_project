@@ -40,8 +40,8 @@ class BehaviouralPlanner:
         return self._tl_state
 
     # Handles state transitions and computes the goal state.
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, ego_rpy=None):
-        self._state.transition_state(waypoints, ego_state, closed_loop_speed, ego_rpy)
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+        self._state.transition_state(waypoints, ego_state, closed_loop_speed)
 
     def update_goal(self, waypoints, goal_index, speed=None):
         self._goal_index = goal_index
