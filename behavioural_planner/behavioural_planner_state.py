@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from traffic_light_detector import TrafficLightState
 import numpy as np
+import transforms3d
 
 # Stop speed threshold
 STOP_THRESHOLD = 0.02
@@ -10,6 +11,17 @@ STOP_COUNTS = 10
 # Distance from intersection where we spot the stop line
 DIST_SPOT_INTER = 15 # meters
 DIST_STOP_INTER = 3.5 # meters
+
+# Radius on the Y axis for the Intersection ahead check. The check on the X axis
+RELATIVE_DIST_INTER_Y = 3.5
+
+
+def transform_world_to_ego_frame(pos, ego_xyz, ego_rpy):
+    loc = np.array(pos) - np.array(ego_xyz)
+    r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
+    loc_relative = np.dot(r, loc)
+    return loc_relative
+
 
 class BehaviouralPlannerState(ABC):
 
@@ -82,25 +94,32 @@ class BehaviouralPlannerState(ABC):
 
         return goal_index
 
-
-
     def _get_intersection_goal(self, waypoints, ego_state):
-        
+
         closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
         goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
-        
+
         intersection_lines = self.context.get_intersection_lines()
-        
+
         for i in range(closest_index, goal_index):
             for inter in intersection_lines:
+                car_loc_relative = transform_world_to_ego_frame([inter[0], inter[1], inter[2]],
+                                                                [ego_state[0], ego_state[1], 0.0],
+                                                                [0.0, 0.0, ego_state[2]])
                 dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
                 if dist_spot < DIST_SPOT_INTER:
-                    for j in range(i, len(waypoints)):
-                        dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
+                    if car_loc_relative[0] > 0 and -RELATIVE_DIST_INTER_Y <= car_loc_relative[1] <= RELATIVE_DIST_INTER_Y:
+                        print(f"Intersection ahead. Position: {car_loc_relative}")
+                        for j in range(i, len(waypoints)):
+                            dist_stop = np.linalg.norm(
+                                np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
 
-                        if dist_stop < DIST_STOP_INTER:
-                            print(f"Stop Waypoint: {j-1} {waypoints[j-1]}")
-                            return j-1
+                            if dist_stop < DIST_STOP_INTER:
+                                print(f"Stop Waypoint: {j - 1} {waypoints[j - 1]}")
+                                return j - 1
+                    else:
+                        print(f"Intersection behind, ignored. Position: {car_loc_relative}")
+                        return None
         return None
 
 
