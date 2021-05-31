@@ -34,12 +34,12 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 3  # spawn index for player
-DESTINATION_INDEX = 12  # Setting a Destination HERE
+PLAYER_START_INDEX = 109  # spawn index for player
+DESTINATION_INDEX = 120  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
-SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
-SEED_VEHICLES = 0  # seed for vehicle spawn randomizer
+SEED_PEDESTRIANS = 101  # seed for pedestrian spawn randomizer
+SEED_VEHICLES = 101  # seed for vehicle spawn randomizer
 ###############################################################################àà
 
 ITER_FOR_SIM_TIME_STEP = 10  # no. iterations to compute approx sim time-step
@@ -1065,7 +1065,7 @@ def exec_waypoint_nav_demo(args):
                 cmd_brake = 0.0
 
             # Skip the first frame or if there exists no local paths
-            if skip_first_frame and frame == 0:
+            if not enable_live_plot or (skip_first_frame and frame == 0):
                 pass
             elif local_waypoints is None:
                 pass
@@ -1160,14 +1160,15 @@ def exec_waypoint_nav_demo(args):
         # Stop the car
         send_control_command(client, throttle=0.0, steer=0.0, brake=1.0)
         # Store the various outputs
-        store_trajectory_plot(trajectory_fig.fig, 'trajectory.png')
-        store_trajectory_plot(forward_speed_fig.fig, 'forward_speed.png')
-        store_trajectory_plot(throttle_fig.fig, 'throttle_output.png')
-        store_trajectory_plot(brake_fig.fig, 'brake_output.png')
-        store_trajectory_plot(steer_fig.fig, 'steer_output.png')
-        write_trajectory_file(x_history, y_history, speed_history, time_history,
-                              collided_flag_history)
-        write_collisioncount_file(collided_flag_history)
+        if enable_live_plot:
+            store_trajectory_plot(trajectory_fig.fig, 'trajectory.png')
+            store_trajectory_plot(forward_speed_fig.fig, 'forward_speed.png')
+            store_trajectory_plot(throttle_fig.fig, 'throttle_output.png')
+            store_trajectory_plot(brake_fig.fig, 'brake_output.png')
+            store_trajectory_plot(steer_fig.fig, 'steer_output.png')
+            write_trajectory_file(x_history, y_history, speed_history, time_history,
+                                  collided_flag_history)
+            write_collisioncount_file(collided_flag_history)
 
 
 def main():
