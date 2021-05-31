@@ -16,13 +16,14 @@ import configparser
 import cv2
 from local_planner import local_planner
 from behavioural_planner import behavioural_planner
-from traffic_light_detector import TrafficLightDetector, TrafficLightState
-from data_visualization import visualize_sensor_data, get_sensor_output, Sensor
+from traffic_light_detector import TrafficLightDetector
+from data_visualization import get_sensor_output, Sensor
 import transforms3d
 import time
 import pickle
 from random import choice
 from rectangle import Rectangle
+from helpers import transform_world_to_ego_frame
 
 
 # Script level imports
@@ -994,7 +995,7 @@ def exec_waypoint_nav_demo(args):
                     prev_tl_state = curr_tl_state
                     print(f"Nearest TL: {(curr_tl_state.name, score)}")
 
-                bp.set_tl_state(curr_tl_state)
+                bp.tl_state = curr_tl_state
                 # Shows Traffic Light Detector output
                 cv2.imshow("Traffic Lights", np.hstack(tuple(tl_images)))
                 cv2.waitKey(1)
@@ -1009,7 +1010,7 @@ def exec_waypoint_nav_demo(args):
                 ego_state = [current_x, current_y, current_yaw, open_loop_speed]
 
                 # Set lookahead based on current speed.
-                bp.set_lookahead(BP_LOOKAHEAD_BASE + BP_LOOKAHEAD_TIME * open_loop_speed)
+                bp.lookahead = BP_LOOKAHEAD_BASE + BP_LOOKAHEAD_TIME * open_loop_speed
 
                 # Perform a state transition in the behavioural planner.
                 bp.transition_state(waypoints, ego_state, current_speed, pedestrian_states)
@@ -1213,11 +1214,7 @@ def exec_waypoint_nav_demo(args):
             write_collisioncount_file(collided_flag_history)
 
 
-def transform_world_to_ego_frame(pos, ego, ego_rpy):
-    loc = np.array(pos) - np.array(ego)
-    r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
-    loc_relative = np.dot(r, loc)
-    return loc_relative
+
 
 
 def transform_to_matrix(transform):

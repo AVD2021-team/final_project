@@ -1,5 +1,12 @@
 from math import sqrt
+import numpy as np
+import transforms3d
 
+def transform_world_to_ego_frame(pos, ego, ego_rpy):
+    loc = np.array(pos) - np.array(ego)
+    r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
+    loc_relative = np.dot(r, loc)
+    return loc_relative
 
 # Using d = (v_f^2 - v_i^2) / (2 * a), compute the distance
 # required for a given acceleration/deceleration.

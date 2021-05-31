@@ -7,7 +7,6 @@ import math
 # Script level imports
 sys.path.append(os.path.realpath(os.path.dirname(__file__)))
 from behavioural_planner_state import BehaviouralPlannerState, FollowLaneState
-from local_planner.velocity_planner import calc_distance
 from traffic_light_detector import TrafficLightState
 
 sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
@@ -52,6 +51,10 @@ class BehaviouralPlanner:
     def emergency_brake_distance(self):
         return self._emergency_brake_distance
 
+    @property
+    def tl_state(self):
+        return self._tl_state
+
     @pedestrian_on_lane.setter
     def pedestrian_on_lane(self, pedestrian_on_lane):
         self._pedestrian_on_lane = pedestrian_on_lane
@@ -60,14 +63,13 @@ class BehaviouralPlanner:
     def emergency_brake_distance(self, emergency_brake_distance):
         self._emergency_brake_distance = emergency_brake_distance
 
-    def set_lookahead(self, lookahead):
+    @lookahead.setter
+    def lookahead(self, lookahead):
         self._lookahead = lookahead
 
-    def set_tl_state(self, tl_state: TrafficLightState):
+    @tl_state.setter
+    def tl_state(self, tl_state: TrafficLightState):
         self._tl_state = tl_state
-
-    def get_tl_state(self):
-        return self._tl_state
 
     # Handles state transitions and computes the goal state.
     def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):

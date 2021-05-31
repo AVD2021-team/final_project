@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from traffic_light_detector import TrafficLightState
 import numpy as np
-import transforms3d
 import sys
 import os
 
 # Script level imports
 sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
-from helpers import calc_distance, calc_final_speed
+from helpers import calc_distance, transform_world_to_ego_frame
 
 
 # Stop speed threshold
@@ -21,13 +20,6 @@ DIST_STOP_INTER = 3.5 # meters
 
 # Radius on the Y axis for the Intersection ahead check. The check on the X axis
 RELATIVE_DIST_INTER_Y = 3.5
-
-
-def transform_world_to_ego_frame(pos, ego_xyz, ego_rpy):
-    loc = np.array(pos) - np.array(ego_xyz)
-    r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
-    loc_relative = np.dot(r, loc)
-    return loc_relative
 
 
 class BehaviouralPlannerState(ABC):
@@ -160,7 +152,7 @@ class FollowLaneState(BehaviouralPlannerState):
         goal_index = self._get_new_goal(waypoints, ego_state)
 
         intersection_goal = None
-        if self.context.get_tl_state() == TrafficLightState.STOP:
+        if self.context.tl_state == TrafficLightState.STOP:
             intersection_goal = self._get_intersection_goal(waypoints, ego_state)
 
         if intersection_goal is not None:
@@ -186,7 +178,7 @@ class DecelerateToStopState(BehaviouralPlannerState):
         if self.context.pedestrian_on_lane:
             self.context.transition_to(EmergencyStopState(self.context))
         # If the traffic light is green or has disappeared, transition to Follow lane
-        elif self.context.get_tl_state() == TrafficLightState.GO or self.context.get_tl_state() == TrafficLightState.NO_TL:
+        elif self.context.tl_state in (TrafficLightState.GO, TrafficLightState.NO_TL):
             self.context.transition_to(FollowLaneState(self.context))
 
 
