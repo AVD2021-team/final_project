@@ -1,4 +1,11 @@
 from abc import ABC, abstractmethod
+import sys
+import os
+
+# Script level imports
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
+from helpers import calc_distance, calc_final_speed
+
 
 # Stop speed threshold
 STOP_THRESHOLD = 0.02
@@ -22,7 +29,7 @@ class BehaviouralPlannerState(ABC):
         self._context = context
 
     @abstractmethod
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
         """Handles state transitions and computes the goal state.
 
         args:
@@ -69,12 +76,12 @@ class BehaviouralPlannerState(ABC):
         # First, find the closest index to the ego vehicle.
         closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
 
-        # Next, find the goal index that lies within the lookahead distance
-        # along the waypoints.
+        # Next, find the goal index that lies within the lookahead distance along the waypoints.
         goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
         while waypoints[goal_index][2] <= 0.1:
             goal_index += 1
 
+        # Update goal
         self.context._goal_index = goal_index
         self.context._goal_state = waypoints[goal_index]
 
@@ -93,9 +100,13 @@ class FollowLaneState(BehaviouralPlannerState):
     understand it.
     """
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
         # print("FOLLOW_LANE")
-        self._update_goal(waypoints, ego_state)
+        self.context.emergency_brake_distance = calc_distance(closed_loop_speed, 0, -self.context.a_max)
+        if self.context.pedestrian_on_lane:
+            self.context.transition_to(EmergencyStopState(self.context))
+        else:
+            self._update_goal(waypoints, ego_state)
 
 
 class DecelerateToStopState(BehaviouralPlannerState):
@@ -106,9 +117,11 @@ class DecelerateToStopState(BehaviouralPlannerState):
     state.
     """
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
         # print("DECELERATE_TO_STOP")
-        if abs(closed_loop_speed) <= STOP_THRESHOLD:
+        if self.context.pedestrian_on_lane:
+            self.context.transition_to(EmergencyStopState(self.context))
+        elif abs(closed_loop_speed) <= STOP_THRESHOLD:
             self.context.transition_to(StayStoppedState(self.context))
             self.context._stop_count = 0
 
@@ -120,7 +133,7 @@ class StayStoppedState(BehaviouralPlannerState):
     the stop sign and transition to the next state.
     """
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
         # print("STAY_STOPPED")
         # We have stayed stopped for the required number of cycles.
         # Allow the ego vehicle to leave the stop sign. Once it has
@@ -136,3 +149,17 @@ class StayStoppedState(BehaviouralPlannerState):
         # transition back to our lane following state.
 
         self.context.transition_to(FollowLaneState(self.context))
+
+
+class EmergencyStopState(BehaviouralPlannerState):
+
+    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
+        if self.context.pedestrian_on_lane:
+            # First, find the closest index to the ego vehicle.
+            _, closest_index = self.context.get_closest_index(waypoints, ego_state)
+            # Update goal
+            self.context._goal_index = closest_index
+            self.context._goal_state = waypoints[closest_index]
+            self.context._goal_state[2] = 0
+        else:
+            self.context.transition_to(FollowLaneState(self.context))
