@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+import sys
+import os
 import numpy as np
-from math import sin, cos, pi, sqrt
+
+# Script level imports
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
+from helpers import calc_distance, calc_final_speed
+
 
 EPSILON = 10**(-7)
 
@@ -59,9 +65,8 @@ class VelocityPlanner:
     # for simplicity this project can be implemented by isolating each case.
     # For all profiles, the required acceleration is given by self._a_max.
     # Recall that the path is of the form [x_points, y_points, t_points].
-    def compute_velocity_profile(self, path, desired_speed, ego_state, 
-                                 closed_loop_speed, decelerate_to_stop, 
-                                 lead_car_state, follow_lead_vehicle):
+    def compute_velocity_profile(self, path, desired_speed, ego_state, closed_loop_speed, decelerate_to_stop,
+                                 lead_car_state, follow_lead_vehicle, pedestrian_on_lane=False):
         """Computes the velocity profile for the local planner path.
         
         args:
@@ -115,7 +120,7 @@ class VelocityPlanner:
         # For our profile, use the open loop speed as our initial speed.
         start_speed = ego_state[3]
         # Generate a trapezoidal profile to decelerate to stop.
-        if decelerate_to_stop:
+        if decelerate_to_stop or pedestrian_on_lane:
             profile = self.decelerate_profile(path, start_speed)
 
         # If we need to follow the lead vehicle, make sure we decelerate to its
@@ -123,6 +128,9 @@ class VelocityPlanner:
         elif lead_car_state is not None and follow_lead_vehicle:
             profile = self.follow_profile(path, start_speed, desired_speed, 
                                           lead_car_state)
+
+        elif pedestrian_on_lane:
+            profile = self.nominal_profile(path, start_speed, 0)
 
         # Otherwise, compute the profile to reach our desired speed.
         else:
@@ -460,41 +468,3 @@ class VelocityPlanner:
             profile.append([path[0][i], path[1][i], desired_speed])
 
         return profile
-
-# Using d = (v_f^2 - v_i^2) / (2 * a), compute the distance
-# required for a given acceleration/deceleration.
-def calc_distance(v_i, v_f, a):
-    """Computes the distance given an initial and final speed, with a constant
-    acceleration.
-    
-    args:
-        v_i: initial speed (m/s)
-        v_f: final speed (m/s)
-        a: acceleration (m/s^2)
-    returns:
-        d: the final distance (m)
-    """
-
-    return (v_f*v_f-v_i*v_i)/2/a
-
-# Using v_f = sqrt(v_i^2 + 2ad), compute the final speed for a given
-# acceleration across a given distance, with initial speed v_i.
-# Make sure to check the discriminant of the radical. If it is negative,
-# return zero as the final speed.
-def calc_final_speed(v_i, a, d):
-    """Computes the final speed given an initial speed, distance travelled, 
-    and a constant acceleration.
-    
-    args:
-        v_i: initial speed (m/s)
-        a: acceleration (m/s^2)
-        d: distance to be travelled (m)
-    returns:
-        v_f: the final speed (m/s)
-    """
-    pass
-
-    temp = v_i*v_i+2*d*a
-    if temp < 0: return 0.0000001
-    else: return sqrt(temp)
-

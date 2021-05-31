@@ -9,6 +9,10 @@ sys.path.append(os.path.realpath(os.path.dirname(__file__)))
 from behavioural_planner_state import BehaviouralPlannerState, FollowLaneState
 from local_planner.velocity_planner import calc_distance
 from traffic_light_detector import TrafficLightState
+
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
+from helpers import calc_distance
+
 # State machine states
 # FOLLOW_LANE = 0
 # DECELERATE_TO_STOP = 1
@@ -22,6 +26,7 @@ class BehaviouralPlanner:
         self._state = FollowLaneState(self)
         self._follow_lead_vehicle = False
         self._obstacle_on_lane = False
+        self._pedestrian_on_lane = True
         self._goal_state = [0.0, 0.0, 0.0]
         self._goal_index = 0
         # self._stop_count = 0
@@ -29,6 +34,31 @@ class BehaviouralPlanner:
         self._a_max = a_max
         self._intersection_lines = intersection_lines
         self._tl_state = TrafficLightState.NO_TL
+        self._emergency_brake_distance = 0
+
+    @property
+    def lookahead(self):
+        return self._lookahead
+
+    @property
+    def pedestrian_on_lane(self):
+        return self._pedestrian_on_lane
+
+    @property
+    def a_max(self):
+        return self._a_max
+
+    @property
+    def emergency_brake_distance(self):
+        return self._emergency_brake_distance
+
+    @pedestrian_on_lane.setter
+    def pedestrian_on_lane(self, pedestrian_on_lane):
+        self._pedestrian_on_lane = pedestrian_on_lane
+
+    @emergency_brake_distance.setter
+    def emergency_brake_distance(self, emergency_brake_distance):
+        self._emergency_brake_distance = emergency_brake_distance
 
     def set_lookahead(self, lookahead):
         self._lookahead = lookahead
@@ -40,8 +70,8 @@ class BehaviouralPlanner:
         return self._tl_state
 
     # Handles state transitions and computes the goal state.
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
-        self._state.transition_state(waypoints, ego_state, closed_loop_speed)
+    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
+        self._state.transition_state(waypoints, ego_state, closed_loop_speed, pedestrian_states)
 
     def update_goal(self, waypoints, goal_index, speed=None):
         self._goal_index = goal_index
