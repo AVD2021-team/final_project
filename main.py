@@ -34,8 +34,8 @@ from carla.planner.city_track import CityTrack
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 3  # spawn index for player
-DESTINATION_INDEX = 12  # Setting a Destination HERE
+PLAYER_START_INDEX = 114  # spawn index for player
+DESTINATION_INDEX = 60  # Setting a Destination HERE
 NUM_PEDESTRIANS = 30  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
@@ -972,7 +972,7 @@ def exec_waypoint_nav_demo(args):
                 bp.set_lookahead(BP_LOOKAHEAD_BASE + BP_LOOKAHEAD_TIME * open_loop_speed)
 
                 # Perform a state transition in the behavioural planner.
-                bp.transition_state(waypoints, ego_state, current_speed)
+                bp.transition_state(waypoints, ego_state, current_speed,[current_roll,current_pitch,current_yaw])
 
                 # Check to see if we need to follow the lead vehicle.
                 if lead_car_pos is not None:

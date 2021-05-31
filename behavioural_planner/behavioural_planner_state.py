@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from traffic_light_detector import TrafficLightState
 import numpy as np
+import transforms3d
 
 # Stop speed threshold
 STOP_THRESHOLD = 0.02
@@ -84,7 +85,7 @@ class BehaviouralPlannerState(ABC):
 
 
 
-    def _get_intersection_goal(self, waypoints, ego_state):
+    def _get_intersection_goal(self, waypoints, ego_state, ego_rpy):
         
         closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
         goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
@@ -93,16 +94,33 @@ class BehaviouralPlannerState(ABC):
         
         for i in range(closest_index, goal_index):
             for inter in intersection_lines:
-                dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
-                if dist_spot < DIST_SPOT_INTER:
-                    for j in range(i, len(waypoints)):
-                        dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
+                print(type(inter))
+                print(inter)
+                print("ego state:", type(ego_state))
+                print(ego_state)
+                print("ego rpy:", type(ego_rpy))
+                print(ego_rpy)
+                car_loc_relative=self._transform_world_to_ego_frame(
+                    [inter[0], inter[1], inter[2]],
+                    [ego_state[0],ego_state[1],ego_state[2]],
+                    ego_rpy)
+                if car_loc_relative[0]>0:
+                    print(car_loc_relative)
+                    dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
+                    if dist_spot < DIST_SPOT_INTER:
+                        for j in range(i, len(waypoints)):
+                            dist_stop = np.linalg.norm(np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
 
-                        if dist_stop < DIST_STOP_INTER:
-                            print(f"Stop Waypoint: {j-1} {waypoints[j-1]}")
-                            return j-1
+                            if dist_stop < DIST_STOP_INTER:
+                                print(f"Stop Waypoint: {j-1} {waypoints[j-1]}")
+                                return j-1
         return None
 
+    def _transform_world_to_ego_frame(self, pos, ego, ego_rpy):
+        loc = np.array(pos) - np.array(ego)
+        r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
+        loc_relative = np.dot(r, loc)
+        return loc_relative
 
 class FollowLaneState(BehaviouralPlannerState):
     """
@@ -121,13 +139,13 @@ class FollowLaneState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "FollowLane"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed,ego_rpy):
         # print("FOLLOW_LANE")
         goal_index = self._get_new_goal(waypoints, ego_state)
 
         intersection_goal = None
         if self.context.get_tl_state() == TrafficLightState.STOP:
-            intersection_goal = self._get_intersection_goal(waypoints,ego_state)
+            intersection_goal = self._get_intersection_goal(waypoints,ego_state,ego_rpy)
 
         if intersection_goal is not None:
             self.context.update_goal(waypoints, intersection_goal, 0)
@@ -148,7 +166,7 @@ class DecelerateToStopState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "DecelerateToStop"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed,ego_rpy):
         # If the traffic light is green or has disappeared, transition to Follow lane
         if self.context.get_tl_state() == TrafficLightState.GO or self.context.get_tl_state() == TrafficLightState.NO_TL:
             self.context.transition_to(FollowLaneState(self.context))
@@ -170,7 +188,7 @@ class StayStoppedState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "StayStopped"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed,ego_rpy):
         # print("STAY_STOPPED")
         # We have stayed stopped for the required number of cycles.
         # Allow the ego vehicle to leave the stop sign. Once it has
