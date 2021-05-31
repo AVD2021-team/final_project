@@ -49,8 +49,8 @@ SEED_VEHICLES = 0  # seed for vehicle spawn randomizer
 ###############################################################################
 LEAD_CAR_LATERAL_THRESHOLD = 3 # m, the maximum shift on the y axis, relative to ego, of the lead car
 VEHICLE_LOOK_AHEAD_BBOX_X_MIN = 1.5
-VEHICLE_LOOK_AHEAD_BBOX_Y_MIN = 2.25
-VEHICLE_LOOK_AHEAD_BBOX_WIDTH = VEHICLE_LOOK_AHEAD_BBOX_Y_MIN * 2
+VEHICLE_LOOK_AHEAD_BBOX_Y_MIN = 3
+VEHICLE_LOOK_AHEAD_BBOX_WIDTH = VEHICLE_LOOK_AHEAD_BBOX_Y_MIN + 2.25
 VEHICLE_LOOK_AHEAD_BBOX_MIN_HEIGHT = 10
 ###############################################################################
 
@@ -106,8 +106,7 @@ STOP_LINE_BUFFER = 3.5  # m
 LEAD_VEHICLE_LOOKAHEAD = 10.0  # m
 LP_FREQUENCY_DIVISOR = 2  # Frequency divisor to make the
 DESIRED_SPEED = 8  # m/s
-TURN_SPEED = 3  # m/s
-LEAD_CAR_LATERAL_THRESHOLD = 2 # m, the maximum shift on the y axis, relative to ego, of the lead car
+TURN_SPEED = 2.5  # m/s
 # local planner operate at a lower
 # frequency than the controller
 # (which operates at the simulation
@@ -912,8 +911,6 @@ def exec_waypoint_nav_demo(args):
                                      -VEHICLE_LOOK_AHEAD_BBOX_Y_MIN,
                                      VEHICLE_LOOK_AHEAD_BBOX_X_MIN + max(VEHICLE_LOOK_AHEAD_BBOX_MIN_HEIGHT, 1.2 * bp.emergency_brake_distance),
                                      VEHICLE_LOOK_AHEAD_BBOX_Y_MIN * 2)
-                    if sqrt((proj[0]) ** 2 + (proj[1]) ** 2) < 15:
-                        print(np.round(proj, 2))
                     if rect.intersects(proj[0], proj[1]):
                         bp.pedestrian_on_lane = True
                         pedestrian_states.append([location.x, location.y])
@@ -1104,7 +1101,7 @@ def exec_waypoint_nav_demo(args):
             send_control_command(client,
                                  throttle=cmd_throttle,
                                  steer=cmd_steer,
-                                 brake=cmd_brake)
+                                 brake=cmd_brake if not bp.pedestrian_on_lane else 1.0)
 
             # Find if reached the end of waypoint. If the car is within
             # DIST_THRESHOLD_TO_LAST_WAYPOINT to the last waypoint,
