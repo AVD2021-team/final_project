@@ -96,7 +96,20 @@ class BehaviouralPlannerState(ABC):
         return goal_index
 
     def _get_intersection_goal(self, waypoints, ego_state):
+        """
+        in this function it is checked whether the vehicle is near an intersection.
+        The check is done 15 meters from the intersection. If so, the one that is located 
+        less than 3.5 meters from the intersection is chosen as the target waypoint so it is possible 
+        to stop at an acceptable distance.
 
+        Args:
+            waypoints: list of the waypoints on the path
+            ego_state: (x, y, yaw, current_speed) of the vehicle
+
+        Returns:
+            goal_index: index of the waypoint target
+        """
+        
         closest_len, closest_index = self.context.get_closest_index(waypoints, ego_state)
         goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
 
@@ -216,6 +229,11 @@ class StayStoppedState(BehaviouralPlannerState):
 
 
 class EmergencyStopState(BehaviouralPlannerState):
+    """
+    This state is activated when a very close pedestrian is detected along our trajectory.
+    The goal is to stop in the closet_index to avoid running over a pawn.
+    This state remains until the pedestrian is no longer detected.
+    """
 
     def __init__(self, context):
         super().__init__(context)

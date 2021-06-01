@@ -4,6 +4,17 @@ import transforms3d
 
 
 def transform_world_to_ego_frame(pos, ego, ego_rpy):
+    """
+    transforms a position expressed in world frame into vehicle frame. 
+
+    Args:
+        pos (x,y,z): Position to transform
+        ego (x, y, yaw, cuurent_speed): state of the vehicle 
+        ego_rpy (current_roll, current_pitch, current_yaw): current rpy of the vehicle
+
+    Returns:
+        loc_relative: position expressed in vehicle frame
+    """
     loc = np.array(pos) - np.array(ego)
     r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
     loc_relative = np.dot(r, loc)

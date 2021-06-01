@@ -20,14 +20,12 @@ class TrafficLightState(Enum):
 class TrafficLightDetector(YOLO):
     # Minimum threshold to refuse false positives
     MIN_TH = 0.1
-    # MIN_TH_STOP = 0.40
-    # MIN_TH_GO = 0.70
 
     # Minimum number of frames before change state
-    MIN_STOP_FRAMES = 5
-    MIN_GO_FRAMES = 10
-    MIN_NOTL_FRAMES = 30
-    MIN_INDECISION_FRAMES = 30
+    MIN_STOP_FRAMES = 5     # Min frames to choice STOP signal 
+    MIN_GO_FRAMES = 10      # Min frames to choice GO signal
+    MIN_NOTL_FRAMES = 30    # Min frames to choice NO_TL signal
+    MIN_INDECISION_FRAMES = 30  # Min frames to understand the state predicted is not reliable 
 
     __slots__ = 'config', 'labels', '_state_counter', '_indecision_counter', '_state', '_new_state'
 
@@ -66,7 +64,15 @@ class TrafficLightDetector(YOLO):
     def update_state(self, boxes: Dict[Sensor, List[BoundBox]]):
         """
         Returns the state of the nearest traffic light. The traffic lights are detected in boxes.
-        Proximity and is inferred with a heuristic based on box area.
+        Proximity and is inferred with a heuristic based on box area. if a red light is detected 
+        in one of the rooms, this signal is given priority. Different num frames have been used according to the signal type to prioritize the signal type. 
+
+        Args:
+            boxes (Dict[Sensor, List[BoundBox]]): Dict with key the sensor and 
+                                                  value the list of boxes detected in imege sensors
+
+        Returns:
+            Traffic Light State detected.
         """
         medium_state = self._light_state(boxes[Sensor.MediumFOVCameraRGB])
         large_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
@@ -111,6 +117,13 @@ class TrafficLightDetector(YOLO):
 
     @staticmethod
     def _light_state(boxes: List[BoundBox]):
+        """
+        filters all the detected boxes greater than MIN TH and 
+        it returns the predicted label with the relative score
+
+        Args:
+            boxes (List[BoundBox]): list of Boundi box predicted
+        """
         boxes_ = list(filter(lambda b: b.get_score() > TrafficLightDetector.MIN_TH, boxes))
 
         if len(boxes_) == 0:
