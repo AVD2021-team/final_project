@@ -66,7 +66,7 @@ class VelocityPlanner:
     # For all profiles, the required acceleration is given by self._a_max.
     # Recall that the path is of the form [x_points, y_points, t_points].
     def compute_velocity_profile(self, path, desired_speed, ego_state, closed_loop_speed, decelerate_to_stop,
-                                 lead_car_state, follow_lead_vehicle, pedestrian_on_lane=False):
+                                 lead_car_state, follow_lead_vehicle, obstacle_on_lane=False):
         """Computes the velocity profile for the local planner path.
         
         args:
@@ -119,18 +119,25 @@ class VelocityPlanner:
         profile = []
         # For our profile, use the open loop speed as our initial speed.
         start_speed = ego_state[3]
+
+        # Decelerate to Stop and Follow Lead Vehicle are NOT mutually exclusive
+        if decelerate_to_stop and lead_car_state is not None and follow_lead_vehicle:
+            profile = self.follow_profile(path, start_speed, 0,
+                                          lead_car_state)
+
         # Generate a trapezoidal profile to decelerate to stop.
-        if decelerate_to_stop:
+        elif decelerate_to_stop:
             profile = self.decelerate_profile(path, start_speed)
+
+        # Decelerate To Stop and Obstacle on Lane are mutually exclusive
+        elif obstacle_on_lane:
+            profile = self.nominal_profile(path, start_speed, 0)
 
         # If we need to follow the lead vehicle, make sure we decelerate to its
         # speed by the time we reach the time gap point.
         elif lead_car_state is not None and follow_lead_vehicle:
             profile = self.follow_profile(path, start_speed, desired_speed, 
                                           lead_car_state)
-
-        elif pedestrian_on_lane:
-            profile = self.nominal_profile(path, start_speed, 0)
 
         # Otherwise, compute the profile to reach our desired speed.
         else:
