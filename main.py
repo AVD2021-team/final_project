@@ -145,7 +145,7 @@ SENSORS = {
     Sensor.RightLargeFOVCameraRGB: Camera(
         Sensor.RightLargeFOVCameraRGB.value, PositionX=-1.5, PositionY=1.0, PositionZ=1.0,
         RotationYaw=45,
-        RotationPitch=0,
+        RotationPitch=5,
         PostProcessing='SceneFinal',
         ImageSizeX=400, ImageSizeY=400,
         FOV=110
