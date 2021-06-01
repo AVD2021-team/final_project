@@ -38,7 +38,7 @@ class BehaviouralPlannerState(ABC):
         self._context = context
 
     @abstractmethod
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
         """Handles state transitions and computes the goal state.
 
         args:
@@ -152,11 +152,11 @@ class FollowLaneState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "FollowLane"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("FOLLOW_LANE")
         self.context.emergency_brake_distance = calc_distance(closed_loop_speed, 0, -self.context.a_max)
 
-        if self.context.pedestrian_on_lane:
+        if self.context.obstacle_on_lane:
             # First, find the closest index to the ego vehicle.
             goal_index = self._get_new_goal(waypoints, ego_state)
             # Update goal
@@ -187,9 +187,9 @@ class DecelerateToStopState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "DecelerateToStop"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("DECELERATE_TO_STOP")
-        if self.context.pedestrian_on_lane:
+        if self.context.obstacle_on_lane:
             self.context.transition_to(EmergencyStopState(self.context))
         # If the traffic light is green or has disappeared, transition to Follow lane
         elif self.context.tl_state in (TrafficLightState.GO, TrafficLightState.NO_TL):
@@ -206,7 +206,7 @@ class StayStoppedState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "StayStopped"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
         # print("STAY_STOPPED")
         # We have stayed stopped for the required number of cycles.
         # Allow the ego vehicle to leave the stop sign. Once it has
@@ -237,7 +237,7 @@ class EmergencyStopState(BehaviouralPlannerState):
         super().__init__(context)
         self.name = "EmergencyStop"
 
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
-        if not self.context.pedestrian_on_lane:
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+        if not self.context.obstacle_on_lane:
             self.context.transition_to(FollowLaneState(self.context))
 

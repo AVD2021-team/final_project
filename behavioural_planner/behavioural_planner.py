@@ -25,7 +25,6 @@ class BehaviouralPlanner:
         self._state = FollowLaneState(self)
         self._follow_lead_vehicle = False
         self._obstacle_on_lane = False
-        self._pedestrian_on_lane = True
         self._goal_state = [0.0, 0.0, 0.0]
         self._goal_index = 0
         # self._stop_count = 0
@@ -48,12 +47,16 @@ class BehaviouralPlanner:
         return self._follow_lead_vehicle
 
     @property
-    def pedestrian_on_lane(self):
-        return self._pedestrian_on_lane
+    def obstacle_on_lane(self):
+        return self._obstacle_on_lane
 
     @property
     def goal_state(self):
         return self._goal_state
+
+    @property
+    def goal_index(self):
+        return self._goal_index
 
     @property
     def a_max(self):
@@ -71,9 +74,9 @@ class BehaviouralPlanner:
     def lookahead(self, lookahead):
         self._lookahead = lookahead
 
-    @pedestrian_on_lane.setter
-    def pedestrian_on_lane(self, pedestrian_on_lane):
-        self._pedestrian_on_lane = pedestrian_on_lane
+    @obstacle_on_lane.setter
+    def obstacle_on_lane(self, obstacle_on_lane):
+        self._obstacle_on_lane = obstacle_on_lane
 
     @tl_state.setter
     def tl_state(self, tl_state: TrafficLightState):
@@ -84,8 +87,8 @@ class BehaviouralPlanner:
         self._emergency_brake_distance = emergency_brake_distance
 
     # Handles state transitions and computes the goal state.
-    def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
-        self._state.transition_state(waypoints, ego_state, closed_loop_speed, pedestrian_states)
+    def transition_state(self, waypoints, ego_state, closed_loop_speed):
+        self._state.transition_state(waypoints, ego_state, closed_loop_speed)
 
     def update_goal(self, waypoints, goal_index, speed=None):
         self._goal_index = goal_index

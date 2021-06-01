@@ -23,8 +23,20 @@ class LocalPlanner:
         self._prev_best_path = None
 
     @property
+    def collision_checker(self):
+        return self._collision_checker
+
+    @property
     def velocity_planner(self):
         return self._velocity_planner
+
+    @property
+    def prev_best_path(self):
+        return self._prev_best_path
+
+    @prev_best_path.setter
+    def prev_best_path(self, prev_best_path):
+        self._prev_best_path = prev_best_path
 
     ######################################################
     ######################################################

@@ -204,3 +204,17 @@ def sad(a, b):
     if d < -180:
         d += 360
     return d
+
+
+def check_obstacle_future_intersection(entity, height, loc_relative, ego, ego_rpy, speed=None):
+    # Check if entity's trajectory intersect ego's trajectory
+    a = (0, 0)
+    b = (height, 0)
+    c = loc_relative[:-1]
+    d = transform_world_to_ego_frame(
+        estimate_next_entity_pos(entity, speed=speed),
+        ego,
+        ego_rpy
+    )[:-1]
+
+    return line_intersection((a, b), (c, d))
