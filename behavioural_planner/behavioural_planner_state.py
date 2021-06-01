@@ -87,7 +87,7 @@ class BehaviouralPlannerState(ABC):
 
         # Next, find the goal index that lies within the lookahead distance along the waypoints.
         goal_index = self.context.get_goal_index(waypoints, ego_state, closest_len, closest_index)
-        while waypoints[goal_index][2] <= 0.1:
+        while goal_index < len(waypoints) and waypoints[goal_index][2] <= 0.1:
             goal_index += 1
 
         # Update goal
