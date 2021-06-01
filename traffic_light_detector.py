@@ -24,11 +24,12 @@ class TrafficLightDetector(YOLO):
     # MIN_TH_GO = 0.70
 
     # Minimum number of frames before change state
-    MIN_STOP_FRAMES = 2
-    MIN_GO_FRAMES = 5
-    MIN_NOTL_FRAMES = 20
+    MIN_STOP_FRAMES = 5
+    MIN_GO_FRAMES = 10
+    MIN_NOTL_FRAMES = 30
+    MIN_INDECISION_FRAMES = 30
 
-    __slots__ = 'config', 'labels', '_state_counter', '_state', '_new_state'
+    __slots__ = 'config', 'labels', '_state_counter', '_indecision_counter', '_state', '_new_state'
 
     def __init__(self):
         with open(os.path.join('traffic_light_detection_module', 'config.json')) as config_file:
@@ -39,6 +40,7 @@ class TrafficLightDetector(YOLO):
                                              'traffic_light_detection_module',
                                              'checkpoints', self.config['model']['saved_model_name']))
         self._state_counter = 0
+        self._indecision_counter = 0
         self._state = None
         self._new_state = None
 
@@ -70,7 +72,9 @@ class TrafficLightDetector(YOLO):
         large_state = self._light_state(boxes[Sensor.LargeFOVCameraRGB])
         right_state = self._light_state(boxes[Sensor.RightLargeFOVCameraRGB])
 
-        if medium_state[0] == TrafficLightState.STOP or large_state[0] == TrafficLightState.STOP or right_state[0] == TrafficLightState.STOP:
+        if (medium_state[0] == TrafficLightState.STOP or
+                large_state[0] == TrafficLightState.STOP or
+                right_state[0] == TrafficLightState.STOP):
             new_state = TrafficLightState.STOP, min(medium_state[1], large_state[1])
         elif medium_state[0] == TrafficLightState.NO_TL:
             if large_state[0] == TrafficLightState.NO_TL:
@@ -80,22 +84,29 @@ class TrafficLightDetector(YOLO):
         else:
             new_state = medium_state
 
-
         if self._state is None:
-            self._state = new_state
+            self._state = (TrafficLightState.NO_TL, 1.0)
+            self._new_state = (TrafficLightState.NO_TL, 1.0)
 
-        if new_state[0] == self.get_state()[0] or new_state[0] != self._new_state[0]:
+        if new_state[0] != self._new_state[0]:
+            self._indecision_counter += 1
+            self._new_state = new_state
             self._state_counter = 0
         elif new_state[0] == self._new_state[0]:
             self._state_counter += 1
+            self._new_state = new_state
 
-        if ((new_state[0] == TrafficLightState.NO_TL and self._state_counter >= self.MIN_NOTL_FRAMES) or
-           (new_state[0] == TrafficLightState.GO and self._state_counter >= self.MIN_GO_FRAMES) or
-           (new_state[0] == TrafficLightState.STOP and self._state_counter >= self.MIN_STOP_FRAMES)):
-            self._state = new_state
+        if self._indecision_counter >= self.MIN_INDECISION_FRAMES:
+            print(f"Cannot decide TL state. Defaulting to NO_TL...")
+            self._state = (TrafficLightState.NO_TL, 1.0)
+            self._indecision_counter = 0
+        elif ((self._new_state[0] == TrafficLightState.NO_TL and self._state_counter >= self.MIN_NOTL_FRAMES) or
+              (self._new_state[0] == TrafficLightState.GO and self._state_counter >= self.MIN_GO_FRAMES) or
+              (self._new_state[0] == TrafficLightState.STOP and self._state_counter >= self.MIN_STOP_FRAMES)):
+            self._state = self._new_state
             self._state_counter = 0
+            self._indecision_counter = 0
 
-        self._new_state = new_state
         return self.get_state()
 
     @staticmethod
