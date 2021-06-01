@@ -993,7 +993,7 @@ def exec_waypoint_nav_demo(args):
                 curr_tl_state, score = tld.update_state(boxes_dict)
                 if prev_tl_state != curr_tl_state:
                     prev_tl_state = curr_tl_state
-                    print(f"Nearest TL: {(curr_tl_state.name, score)}")
+                    print(f"Traffic Light: {curr_tl_state.name}")
 
                 bp.tl_state = curr_tl_state
                 # Shows Traffic Light Detector output
