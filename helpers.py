@@ -9,7 +9,7 @@ def transform_world_to_ego_frame(pos, ego, ego_rpy):
 
     Args:
         pos (x,y,z): Position to transform
-        ego (x, y, yaw, cuurent_speed): state of the vehicle 
+        ego (x, y, yaw, current_speed): state of the vehicle
         ego_rpy (current_roll, current_pitch, current_yaw): current rpy of the vehicle
 
     Returns:
@@ -67,7 +67,6 @@ def filter_bbs_by_depth(boxes, distance_image):
     Returns a list of BoundBox objects filtered by their mean distance.
     distance_image is an array of distance measures in meters with the shape of the depth image.
     """
-
     new_boxes = []
     img_shape = distance_image.shape  # assumed (h, w, color)
     if boxes:
@@ -103,26 +102,23 @@ def zoom_image(image, zoom_factor):
     img_center = (int(image.shape[0] / 2), int(image.shape[1] / 2))
 
     image = image[int(img_center[0] - img_size[0] / 2):int(img_center[0] + img_size[0] / 2),
-            int(img_center[1] - img_size[1] / 2):int(img_center[1] + img_size[0] / 2)]
+                  int(img_center[1] - img_size[1] / 2):int(img_center[1] + img_size[0] / 2)]
 
     return image
 
 
 def line_intersection(line1, line2):
-    x_diff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-    y_diff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+    """
+    Returns True if line1 and line2 intersect, False otherwise
+    """
+    def ccw(x, y, z):
+        return (z[1] - x[1]) * (y[0] - x[0]) > (y[1] - x[1]) * (z[0] - x[0])
 
-    def det(a, b):
-        return a[0] * b[1] - a[1] * b[0]
-
-    div = det(x_diff, y_diff)
-    if div == 0:
-        return None
-
-    d = (det(*line1), det(*line2))
-    x = det(d, x_diff) / div
-    y = det(d, y_diff) / div
-    return x, y
+    a = line1[0]
+    b = line1[1]
+    c = line2[0]
+    d = line2[1]
+    return ccw(a, c, d) != ccw(b, c, d) and ccw(a, b, c) != ccw(a, b, d)
 
 
 def rotate_x(angle):
@@ -147,7 +143,7 @@ def rotate_z(angle):
 
 
 # Transform the obstacle with its boundary point in the global frame
-def obstacle_to_world(location, dimensions, rotation, x_shift=0):
+def get_obstacle_box_points(location, dimensions, rotation, x_shift=0):
     box_pts = []
 
     x = location.x
@@ -184,7 +180,7 @@ def transform_to_matrix(transform):
     rotation = transform.rotation
     rotation = np.deg2rad([rotation.roll, rotation.pitch, rotation.yaw])
     location = transform.location
-    rotation_matrix = transforms3d.euler.euler2mat(rotation[0], rotation[1], rotation[2]).T
+    rotation_matrix = transforms3d.euler.euler2mat(rotation[0], rotation[1], rotation[2])
     matrix = np.append(rotation_matrix, [[location.x], [location.y], [location.z]], axis=1)
     matrix = np.vstack([matrix, [0, 0, 0, 1]])
     return matrix
@@ -193,7 +189,7 @@ def transform_to_matrix(transform):
 def estimate_next_entity_pos(entity, speed=None, speed_scale_factor=1):
     """
     Returns global frame coordinates of next position for entity.
-    speed is the entity speed (by default it is .forward_speed.
+    speed is the entity speed (by default it is .forward_speed).
     speed_scale_factor is used for simulation step
     """
     if speed is None:

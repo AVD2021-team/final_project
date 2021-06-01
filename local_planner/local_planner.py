@@ -13,20 +13,18 @@ import velocity_planner
 
 
 class LocalPlanner:
-    def __init__(self, num_paths, path_offset, circle_offsets, circle_radii,
-                 path_select_weight, time_gap, a_max, slow_speed,
-                 stop_line_buffer):
+    def __init__(self, num_paths, path_offset, circle_offsets, circle_radii, path_select_weight, time_gap, a_max,
+                 slow_speed, stop_line_buffer):
         self._num_paths = num_paths
         self._path_offset = path_offset
         self._path_optimizer = path_optimizer.PathOptimizer()
-        self._collision_checker = \
-            collision_checker.CollisionChecker(circle_offsets,
-                                               circle_radii,
-                                               path_select_weight)
-        self._velocity_planner = \
-            velocity_planner.VelocityPlanner(time_gap, a_max, slow_speed,
-                                             stop_line_buffer)
+        self._collision_checker = collision_checker.CollisionChecker(circle_offsets, circle_radii, path_select_weight)
+        self._velocity_planner = velocity_planner.VelocityPlanner(time_gap, a_max, slow_speed, stop_line_buffer)
         self._prev_best_path = None
+
+    @property
+    def velocity_planner(self):
+        return self._velocity_planner
 
     ######################################################
     ######################################################

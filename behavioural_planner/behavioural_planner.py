@@ -40,36 +40,48 @@ class BehaviouralPlanner:
         return self._lookahead
 
     @property
+    def state(self):
+        return self._state
+
+    @property
+    def follow_lead_vehicle(self):
+        return self._follow_lead_vehicle
+
+    @property
     def pedestrian_on_lane(self):
         return self._pedestrian_on_lane
+
+    @property
+    def goal_state(self):
+        return self._goal_state
 
     @property
     def a_max(self):
         return self._a_max
 
     @property
-    def emergency_brake_distance(self):
-        return self._emergency_brake_distance
-
-    @property
     def tl_state(self):
         return self._tl_state
 
-    @pedestrian_on_lane.setter
-    def pedestrian_on_lane(self, pedestrian_on_lane):
-        self._pedestrian_on_lane = pedestrian_on_lane
-
-    @emergency_brake_distance.setter
-    def emergency_brake_distance(self, emergency_brake_distance):
-        self._emergency_brake_distance = emergency_brake_distance
+    @property
+    def emergency_brake_distance(self):
+        return self._emergency_brake_distance
 
     @lookahead.setter
     def lookahead(self, lookahead):
         self._lookahead = lookahead
 
+    @pedestrian_on_lane.setter
+    def pedestrian_on_lane(self, pedestrian_on_lane):
+        self._pedestrian_on_lane = pedestrian_on_lane
+
     @tl_state.setter
     def tl_state(self, tl_state: TrafficLightState):
         self._tl_state = tl_state
+
+    @emergency_brake_distance.setter
+    def emergency_brake_distance(self, emergency_brake_distance):
+        self._emergency_brake_distance = emergency_brake_distance
 
     # Handles state transitions and computes the goal state.
     def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
