@@ -123,6 +123,23 @@ class BehaviouralPlannerState(ABC):
                         return None
         return None
 
+    def _tl_check_and_goal_update(self, waypoints, ego_state):
+        """
+        Checks for the traffic light, gets the right waypoint and transitions to the right state.
+        """
+
+        goal_index = self._get_new_goal(waypoints, ego_state)
+
+        intersection_goal = None
+        if self.context.tl_state == TrafficLightState.STOP:
+            intersection_goal = self._get_intersection_goal(waypoints, ego_state)
+
+        if intersection_goal is not None:
+            self.context.update_goal(waypoints, intersection_goal, 0)
+            self.context.transition_to(DecelerateToStopState(self.context))
+        else:
+            self.context.update_goal(waypoints, goal_index)
+
 
 class FollowLaneState(BehaviouralPlannerState):
     """
@@ -146,20 +163,13 @@ class FollowLaneState(BehaviouralPlannerState):
         self.context.emergency_brake_distance = calc_distance(closed_loop_speed, 0, -self.context.a_max)
 
         if self.context.pedestrian_on_lane:
+            # First, find the closest index to the ego vehicle.
+            goal_index = self._get_new_goal(waypoints, ego_state)
+            # Update goal
+            self.context.update_goal(waypoints, goal_index, 0)
             self.context.transition_to(EmergencyStopState(self.context))
-            return
-
-        goal_index = self._get_new_goal(waypoints, ego_state)
-
-        intersection_goal = None
-        if self.context.tl_state == TrafficLightState.STOP:
-            intersection_goal = self._get_intersection_goal(waypoints, ego_state)
-
-        if intersection_goal is not None:
-            self.context.update_goal(waypoints, intersection_goal, 0)
-            self.context.transition_to(DecelerateToStopState(self.context))
         else:
-            self.context.update_goal(waypoints, goal_index)
+           self._tl_check_and_goal_update(waypoints, ego_state)
 
 
 class DecelerateToStopState(BehaviouralPlannerState):
@@ -180,7 +190,6 @@ class DecelerateToStopState(BehaviouralPlannerState):
         # If the traffic light is green or has disappeared, transition to Follow lane
         elif self.context.tl_state in (TrafficLightState.GO, TrafficLightState.NO_TL):
             self.context.transition_to(FollowLaneState(self.context))
-
 
 
 class StayStoppedState(BehaviouralPlannerState):
@@ -220,12 +229,6 @@ class EmergencyStopState(BehaviouralPlannerState):
         self.name = "EmergencyStop"
 
     def transition_state(self, waypoints, ego_state, closed_loop_speed, pedestrian_states):
-        if self.context.pedestrian_on_lane:
-            # First, find the closest index to the ego vehicle.
-            _, closest_index = self.context.get_closest_index(waypoints, ego_state)
-            # Update goal
-            self.context._goal_index = closest_index
-            self.context._goal_state = waypoints[closest_index]
-            self.context._goal_state[2] = 0
-        else:
-            self.context.transition_to(FollowLaneState(self.context))
+        if not self.context.pedestrian_on_lane:
+            self._tl_check_and_goal_update(waypoints, ego_state)
+
