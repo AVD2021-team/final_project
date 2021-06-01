@@ -193,8 +193,15 @@ def estimate_next_entity_pos(entity, speed=None, speed_scale_factor=1):
     speed_scale_factor is used for simulation step
     """
     if speed is None:
-        speed = entity.forward_speed * speed_scale_factor
-    return (transform_to_matrix(entity.transform) @ np.array([speed, 0, 0, 1]))[:-1]
+        speed = entity.forward_speed
+    return translate_position(entity, speed * speed_scale_factor)
+
+
+def translate_position(entity, offset):
+    """
+    Returns global frame coordinates of the position for entity translated by offset on the x-axis
+    """
+    return (transform_to_matrix(entity.transform) @ np.array([offset, 0, 0, 1]))[:-1]
 
 
 def sad(a, b):
@@ -210,7 +217,11 @@ def check_obstacle_future_intersection(entity, height, loc_relative, ego, ego_rp
     # Check if entity's trajectory intersect ego's trajectory
     a = (0, 0)
     b = (height, 0)
-    c = loc_relative[:-1]
+    c = transform_world_to_ego_frame(
+        translate_position(entity, -5),
+        ego,
+        ego_rpy
+    )[:-1]
     d = transform_world_to_ego_frame(
         estimate_next_entity_pos(entity, speed=speed),
         ego,
