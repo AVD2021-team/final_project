@@ -1,12 +1,14 @@
-from math import sqrt
+from math import sqrt, cos, sin, pi
 import numpy as np
 import transforms3d
+
 
 def transform_world_to_ego_frame(pos, ego, ego_rpy):
     loc = np.array(pos) - np.array(ego)
     r = transforms3d.euler.euler2mat(ego_rpy[0], ego_rpy[1], ego_rpy[2]).T
     loc_relative = np.dot(r, loc)
     return loc_relative
+
 
 # Using d = (v_f^2 - v_i^2) / (2 * a), compute the distance
 # required for a given acceleration/deceleration.
@@ -47,3 +49,151 @@ def calc_final_speed(v_i, a, d):
         return 0.0000001
     else:
         return sqrt(temp)
+
+
+def filter_bbs_by_depth(boxes, distance_image):
+    """
+    Returns a list of BoundBox objects filtered by their mean distance.
+    distance_image is an array of distance measures in meters with the shape of the depth image.
+    """
+
+    new_boxes = []
+    img_shape = distance_image.shape  # assumed (h, w, color)
+    if boxes:
+        for box in boxes:
+            bounds = box.get_bounds()  # (x_min, y_min, x_max, y_max)
+            bounds = (int(bounds[0] * img_shape[1]),
+                      int(bounds[1] * img_shape[0]),
+                      int(bounds[2] * img_shape[1]),
+                      int(bounds[3] * img_shape[0]))
+            bounded_dist = distance_image[bounds[1]:bounds[3], bounds[0]:bounds[2]]
+
+            # Gaussian-like kernel
+            x, y = np.meshgrid(np.linspace(-1, 1, bounded_dist.shape[1]), np.linspace(-1, 1, bounded_dist.shape[0]))
+            d = np.sqrt(x * x + y * y)
+            sigma, mu = 1.0, 0.0
+            g = np.exp(-((d - mu) ** 2 / (2.0 * sigma ** 2)))
+
+            dist = np.average(bounded_dist * g)
+            # dist = bounded_dist[int(bounded_dist.shape[0]/2), int(bounded_dist.shape[1]/2)]
+            # dist = np.average(bounded_dist)
+            if dist < 1_000:
+                new_boxes.append(box)
+
+    return new_boxes
+
+
+def zoom_image(image, zoom_factor):
+    """
+    Returns the image zoomed towards the center by the zoom factor.
+    """
+    image = image.copy()
+    img_size = (int(image.shape[0] / zoom_factor), int(image.shape[1] / zoom_factor))
+    img_center = (int(image.shape[0] / 2), int(image.shape[1] / 2))
+
+    image = image[int(img_center[0] - img_size[0] / 2):int(img_center[0] + img_size[0] / 2),
+            int(img_center[1] - img_size[1] / 2):int(img_center[1] + img_size[0] / 2)]
+
+    return image
+
+
+def line_intersection(line1, line2):
+    x_diff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+    y_diff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+    def det(a, b):
+        return a[0] * b[1] - a[1] * b[0]
+
+    div = det(x_diff, y_diff)
+    if div == 0:
+        return None
+
+    d = (det(*line1), det(*line2))
+    x = det(d, x_diff) / div
+    y = det(d, y_diff) / div
+    return x, y
+
+
+def rotate_x(angle):
+    r = np.mat([[1, 0, 0],
+                [0, cos(angle), -sin(angle)],
+                [0, sin(angle), cos(angle)]])
+    return r
+
+
+def rotate_y(angle):
+    r = np.mat([[cos(angle), 0, sin(angle)],
+                [0, 1, 0],
+                [-sin(angle), 0, cos(angle)]])
+    return r
+
+
+def rotate_z(angle):
+    r = np.mat([[cos(angle), -sin(angle), 0],
+                [sin(angle), cos(angle), 0],
+                [0, 0, 1]])
+    return r
+
+
+# Transform the obstacle with its boundary point in the global frame
+def obstacle_to_world(location, dimensions, rotation, x_shift=0):
+    box_pts = []
+
+    x = location.x
+    y = location.y
+    z = location.z
+
+    yaw = rotation.yaw * pi / 180
+
+    x_rad = dimensions.x + x_shift
+    y_rad = dimensions.y
+    z_rad = dimensions.z
+
+    # Border points in the obstacle frame
+    pos = np.array([[-x_rad, -x_rad, -x_rad, 0, x_rad, x_rad, x_rad, 0],
+                    [-y_rad, 0, y_rad, y_rad, y_rad, 0, -y_rad, -y_rad]])
+
+    # Rotation of the obstacle
+    rot_yam = np.array([[np.cos(yaw), np.sin(yaw)],
+                        [-np.sin(yaw), np.cos(yaw)]])
+
+    # Location of the obstacle in the world frame
+    pos_shift = np.array([[x, x, x, x, x, x, x, x],
+                          [y, y, y, y, y, y, y, y]])
+
+    pos = np.add(np.matmul(rot_yam, pos), pos_shift)
+
+    for j in range(pos.shape[1]):
+        box_pts.append([pos[0, j], pos[1, j]])
+
+    return box_pts
+
+
+def transform_to_matrix(transform):
+    rotation = transform.rotation
+    rotation = np.deg2rad([rotation.roll, rotation.pitch, rotation.yaw])
+    location = transform.location
+    rotation_matrix = transforms3d.euler.euler2mat(rotation[0], rotation[1], rotation[2]).T
+    matrix = np.append(rotation_matrix, [[location.x], [location.y], [location.z]], axis=1)
+    matrix = np.vstack([matrix, [0, 0, 0, 1]])
+    return matrix
+
+
+def estimate_next_entity_pos(entity, speed=None, speed_scale_factor=1):
+    """
+    Returns global frame coordinates of next position for entity.
+    speed is the entity speed (by default it is .forward_speed.
+    speed_scale_factor is used for simulation step
+    """
+    if speed is None:
+        speed = entity.forward_speed * speed_scale_factor
+    return (transform_to_matrix(entity.transform) @ np.array([speed, 0, 0, 1]))[:-1]
+
+
+def sad(a, b):
+    d = b - a
+    if d > 180:
+        d -= 360
+    if d < -180:
+        d += 360
+    return d
