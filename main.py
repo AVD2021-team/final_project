@@ -841,7 +841,7 @@ def exec_waypoint_nav_demo(args):
                         lead_car_length = agent.vehicle.bounding_box.extent.x
                         lead_car_speed = agent.vehicle.forward_speed
                     else:
-                        if np.linalg.norm(car_loc_relative) < 2 * bp.emergency_brake_distance:
+                        if np.linalg.norm(car_loc_relative) < max(10, 2 * bp.emergency_brake_distance):
                             # If a car is close, either check its trajectory and stop...
                             if vehicle.forward_speed > 0.1 and check_obstacle_future_intersection(
                                     vehicle,
@@ -852,7 +852,7 @@ def exec_waypoint_nav_demo(args):
                                     ):
                                 bp.obstacle_on_lane = True
                             else:
-                                # or add it as an obstacle
+                                # ...or add it as an obstacle
                                 obstacles.append(
                                     get_obstacle_box_points(location, vehicle.bounding_box.extent, rotation))
                 elif agent.HasField("pedestrian"):
@@ -866,20 +866,10 @@ def exec_waypoint_nav_demo(args):
                         [current_roll, current_pitch, current_yaw]
                     )
                     if np.linalg.norm(loc_relative) > max(7, 2 * bp.emergency_brake_distance):
+                        # If a pedestrian is far, ignore it
                         continue
 
-                    # proj = estimate_next_entity_pos(pedestrian, 3 * simulation_time_step)
-                    # proj = transform_world_to_ego_frame(
-                    #     [proj[0], proj[1], proj[2]],
-                    #     [current_x, current_y, current_z],
-                    #     [current_roll, current_pitch, current_yaw])
-                    # rect = Rectangle(-VEHICLE_LOOK_AHEAD_BBOX_X_MIN,
-                    #                  -VEHICLE_LOOK_AHEAD_BBOX_Y_MIN,
-                    #                  VEHICLE_LOOK_AHEAD_BBOX_X_MIN + max(
-                    #                      VEHICLE_LOOK_AHEAD_BBOX_MIN_HEIGHT, 2 * bp.emergency_brake_distance),
-                    #                  VEHICLE_LOOK_AHEAD_BBOX_Y_MIN * 2)
-
-                    # Check if pedestrian's trajectory intersect ego's trajectory
+                    # If a pedestrian is close, either check its trajectory and stop...
                     if check_obstacle_future_intersection(
                             pedestrian,
                             max(VEHICLE_LOOK_AHEAD_BBOX_MIN_HEIGHT, 2 * bp.emergency_brake_distance),
@@ -890,6 +880,7 @@ def exec_waypoint_nav_demo(args):
                     ):
                         bp.obstacle_on_lane = True
                     else:
+                        # ...or add it as an obstacle
                         obstacles.append(get_obstacle_box_points(location, pedestrian.bounding_box.extent, rotation))
 
             # Execute the behaviour and local planning in the current instance

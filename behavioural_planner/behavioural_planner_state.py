@@ -74,8 +74,8 @@ class BehaviouralPlannerState(ABC):
         """
         Checks whether the vehicle is near an intersection and returns a waypoint index.
         Returns None if theres no intersection to be managed.
-        The check is done 15 meters from the intersection. If so, the one that is located 
-        less than 3.5 meters from the intersection is chosen as the target waypoint so it is possible 
+        The check is done 15 meters from the intersection. If so, the one that is located
+        at least 3.5 meters from the intersection is chosen as the target waypoint so it is possible
         to stop at an acceptable distance.
 
         Args:
@@ -98,16 +98,18 @@ class BehaviouralPlannerState(ABC):
         for i in range(closest_index, goal_index):
             for inter in intersection_lines:
                 # We project the intersection onto the ego frame
-                car_loc_relative = transform_world_to_ego_frame([inter[0], inter[1], inter[2]],
-                                                                [ego_state[0], ego_state[1], 0.0],
-                                                                [0.0, 0.0, ego_state[2]])
+                inter_loc_relative = transform_world_to_ego_frame(
+                    [inter[0], inter[1], inter[2]],
+                    [ego_state[0], ego_state[1], 0.0],
+                    [0.0, 0.0, ego_state[2]]
+                )
                 # We calculate the distance between the current waypoint and the current intersection
                 dist_spot = np.linalg.norm(np.array([waypoints[i][0] - inter[0], waypoints[i][1] - inter[1]]))
                 # If this distance is smaller than DIST_SPOT_INTER, we spot the intersection
                 if dist_spot < DIST_SPOT_INTER:
                     # But we also check if it is ahead of ego or behind. If ahead, we choose a stop waypoint.
-                    if car_loc_relative[0] > 0 and -RELATIVE_DIST_INTER_Y <= car_loc_relative[1] <= RELATIVE_DIST_INTER_Y:
-                        print(f"Intersection ahead. Position: {car_loc_relative}")
+                    if inter_loc_relative[0] > 0 and -RELATIVE_DIST_INTER_Y <= inter_loc_relative[1] <= RELATIVE_DIST_INTER_Y:
+                        print(f"Intersection ahead. Position: {inter_loc_relative}")
                         for j in range(i, len(waypoints)):
                             dist_stop = np.linalg.norm(
                                 np.array([waypoints[j][0] - inter[0], waypoints[j][1] - inter[1]]))
@@ -117,7 +119,7 @@ class BehaviouralPlannerState(ABC):
                                 return j - 1
                     # Otherwise we stop checking.
                     else:
-                        print(f"Intersection behind, ignored. Position: {car_loc_relative}")
+                        print(f"Intersection behind, ignored. Position: {inter_loc_relative}")
                         return None
         return None
 
