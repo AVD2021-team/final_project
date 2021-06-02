@@ -38,8 +38,8 @@ with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'points.conf
 ###############################################################################
 # CONFIGURABLE PARAMETERS DURING EXAM
 ###############################################################################
-PLAYER_START_INDEX = 55  # choice(points)  # spawn index for player
-DESTINATION_INDEX = 105  # choice(points)  # Setting a Destination HERE
+PLAYER_START_INDEX = 131  # choice(points)  # spawn index for player
+DESTINATION_INDEX = 96  # choice(points)  # Setting a Destination HERE
 NUM_PEDESTRIANS = 100  # total number of pedestrians to spawn
 NUM_VEHICLES = 30  # total number of vehicles to spawn
 SEED_PEDESTRIANS = 0  # seed for pedestrian spawn randomizer
@@ -865,7 +865,7 @@ def exec_waypoint_nav_demo(args):
                         [current_x, current_y, current_z],
                         [current_roll, current_pitch, current_yaw]
                     )
-                    if np.linalg.norm(loc_relative) > 2 * bp.emergency_brake_distance:
+                    if np.linalg.norm(loc_relative) > max(7, 2 * bp.emergency_brake_distance):
                         continue
 
                     # proj = estimate_next_entity_pos(pedestrian, 3 * simulation_time_step)

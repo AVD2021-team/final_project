@@ -24,7 +24,7 @@ class TrafficLightDetector(YOLO):
     # Minimum number of frames before change state
     MIN_STOP_FRAMES = 5     # Min frames to choice STOP signal 
     MIN_GO_FRAMES = 10      # Min frames to choice GO signal
-    MIN_NOTL_FRAMES = 30    # Min frames to choice NO_TL signal
+    MIN_NOTL_FRAMES = 10    # Min frames to choice NO_TL signal
     MIN_INDECISION_FRAMES = 30  # Min frames to understand the state predicted is not reliable 
 
     __slots__ = 'config', 'labels', '_state_counter', '_indecision_counter', '_state', '_new_state'
