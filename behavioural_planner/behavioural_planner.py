@@ -91,6 +91,9 @@ class BehaviouralPlanner:
         self._state.transition_state(waypoints, ego_state, closed_loop_speed)
 
     def update_goal(self, waypoints, goal_index, speed=None):
+        """
+        Updates the internal goal state given the waypoints and the goal index.
+        """
         self._goal_index = goal_index
         self._goal_state = waypoints[goal_index]
 
