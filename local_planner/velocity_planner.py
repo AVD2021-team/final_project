@@ -127,7 +127,7 @@ class VelocityPlanner:
 
         # Generate a trapezoidal profile to decelerate to stop.
         elif decelerate_to_stop:
-            profile = self.decelerate_profile(path, desired_speed)
+            profile = self.decelerate_profile(path, start_speed)
 
         # Decelerate To Stop and Obstacle on Lane are mutually exclusive
         elif obstacle_on_lane:

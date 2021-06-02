@@ -170,7 +170,7 @@ class FollowLaneState(BehaviouralPlannerState):
                 intersection_goal = self._get_intersection_goal(waypoints, ego_state)
 
             if intersection_goal is not None:
-                self.context.update_goal(waypoints, intersection_goal)
+                self.context.update_goal(waypoints, intersection_goal, 0)
                 self.context.transition_to(DecelerateToStopState(self.context))
             else:
                 self.context.update_goal(waypoints, goal_index)
